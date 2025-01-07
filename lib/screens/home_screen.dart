@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:network_info_plus/network_info_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter/services.dart';
+import 'package:dart_ping/dart_ping.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -19,6 +20,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String _wifiBroadcast = 'Unknown';
   String _deviceGateway = 'Unknown';
   String _wifiSubmask = 'Unknown';
+  String pingResult = "Ping result will be shown here";
 
   final NetworkInfo _networkInfo = NetworkInfo();
 
@@ -63,6 +65,19 @@ class _HomeScreenState extends State<HomeScreen> {
                     ],
                   ),
                 ),
+              ),
+              // Ping result display
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Text(
+                  pingResult,
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                ),
+              ),
+              SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: startPing,
+                child: Text('Ping'),
               ),
             ],
           ),
@@ -123,6 +138,16 @@ class _HomeScreenState extends State<HomeScreen> {
       _wifiBroadcast = wifiBroadcast ?? 'Unknown';
       _deviceGateway = wifiGatewayIP ?? 'Unknown';
       _wifiSubmask = wifiSubmask ?? 'Unknown';
+    });
+  }
+
+  void startPing() async {
+    final ping = Ping('8.8.8.8', count: 4);
+    ping.stream.listen((event) {
+      print(event);
+      setState(() {
+        pingResult = event.toString();
+      });
     });
   }
 

@@ -36,6 +36,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   network_info_plus: ^6.1.2
   permission_handler: ^11.3.1
+  dart_ping: ^9.0.1
 
 dev_dependencies:
   flutter_test:
