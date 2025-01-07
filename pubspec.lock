@@ -341,6 +341,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.1.0"
+  wifi_scan:
+    dependency: "direct main"
+    description:
+      name: wifi_scan
+      sha256: "9a9df688d3e71c39edcd861e6d50beb63815d5505d3884867d75f93e49d66363"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.4.1+1"
   win32:
     dependency: transitive
     description:
