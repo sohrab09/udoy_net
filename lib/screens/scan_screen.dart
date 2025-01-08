@@ -34,7 +34,9 @@ class _ScanScreenState extends State<ScanScreen> {
       );
     }
 
-    setState(() => accessPoints = <WiFiAccessPoint>[]);
+    if (mounted) {
+      setState(() => accessPoints = <WiFiAccessPoint>[]);
+    }
   }
 
   Future<bool> _canGetScannedResults(BuildContext context) async {
@@ -56,7 +58,9 @@ class _ScanScreenState extends State<ScanScreen> {
   Future<void> _getScannedResults(BuildContext context) async {
     if (await _canGetScannedResults(context)) {
       final results = await WiFiScan.instance.getScannedResults();
-      setState(() => accessPoints = results);
+      if (mounted) {
+        setState(() => accessPoints = results);
+      }
     }
   }
 
@@ -80,8 +84,8 @@ class _ScanScreenState extends State<ScanScreen> {
 
   @override
   void dispose() {
-    super.dispose();
     _stopListeningToScanResults();
+    super.dispose();
   }
 
   Widget _buildToggle({
