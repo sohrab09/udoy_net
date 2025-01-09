@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:wifi_scan/wifi_scan.dart';
 
 class ScanScreen extends StatefulWidget {
+  const ScanScreen({super.key});
+
   @override
   _ScanScreenState createState() => _ScanScreenState();
 }
@@ -153,8 +155,7 @@ class _ScanScreenState extends State<ScanScreen> {
 class _AccessPointTile extends StatelessWidget {
   final WiFiAccessPoint accessPoint;
 
-  const _AccessPointTile({Key? key, required this.accessPoint})
-      : super(key: key);
+  const _AccessPointTile({required this.accessPoint});
 
   Widget _buildInfo(String label, dynamic value) => Container(
         decoration: const BoxDecoration(

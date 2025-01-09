@@ -10,6 +10,8 @@ import 'package:flutter/services.dart';
 import 'package:dart_ping/dart_ping.dart';
 
 class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
