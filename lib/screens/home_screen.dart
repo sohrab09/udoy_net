@@ -17,13 +17,20 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  static const platform = MethodChannel('com.example.udoy_net/linkSpeed');
+
   String _wifiName = 'Unknown';
   String _deviceIP = 'Unknown';
   String _deviceGateway = 'Unknown';
-  String _internetPublicIP = 'Unknown'; // New public IP variable
+  String _internetPublicIP = 'Unknown';
 
-  String _gatewayPingResult = "N/A"; // Ping result for gateway
-  String _internetPingResult = "N/A"; // Ping result for public IP
+  String _gatewayPingResult = "N/A";
+  String _internetPingResult = "N/A";
+
+  String _linkSpeed = 'Unknown';
+  String _signalStrength = 'Unknown';
+  String _frequency = 'Unknown';
+  String _rssi = 'Unknown';
 
   final NetworkInfo _networkInfo = NetworkInfo();
 
@@ -31,10 +38,10 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _initNetworkInfo().then((_) {
-      // After network info is fetched, start pinging automatically
       _pingAll();
       _getPublicIP();
-      // Set a timer to refresh the data every 5 seconds
+      _getWifiDetails();
+
       Timer.periodic(const Duration(seconds: 5), (timer) {
         _pingAll();
         _getPublicIP();
@@ -80,9 +87,37 @@ class _HomeScreenState extends State<HomeScreen> {
       _deviceIP = wifiIPv4 ?? 'Unknown';
       _deviceGateway = wifiGatewayIP ?? 'Unknown';
     });
+  }
 
-    // Get public IP
-    _getPublicIP();
+  Future<void> _getWifiDetails() async {
+    try {
+      final Map wifiDetails =
+          await platform.invokeMethod('getWifiDetails') as Map;
+
+      setState(() {
+        _linkSpeed = "${wifiDetails['linkSpeed']} Mbps";
+        _signalStrength =
+            _getSignalStrengthDescription(wifiDetails['signalStrength']);
+        _frequency = "${wifiDetails['frequency']} MHz";
+        _rssi = "${wifiDetails['rssi']} dBm";
+      });
+    } on PlatformException catch (e) {
+      developer.log('Failed to get WiFi details', error: e);
+      setState(() {
+        _linkSpeed = 'Error';
+        _signalStrength = 'Error';
+        _frequency = 'Error';
+        _rssi = 'Error';
+      });
+    }
+  }
+
+  String _getSignalStrengthDescription(int? signalStrength) {
+    if (signalStrength == null) return "Very Weak";
+    if (signalStrength == 4) return "Excellent";
+    if (signalStrength == 3) return "Good";
+    if (signalStrength == 2) return "Poor";
+    return "N/A";
   }
 
   Future<void> _getPublicIP() async {
@@ -126,23 +161,9 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _refreshData() async {
-    setState(() {
-      // Clear the data or show loading state by clearing values temporarily
-      _wifiName = 'Loading...';
-      _deviceIP = 'Loading...';
-      _deviceGateway = 'Loading...';
-      _internetPublicIP = 'Loading...';
-      _gatewayPingResult = 'N/A';
-      _internetPingResult = 'N/A';
-    });
-    await _initNetworkInfo();
-    await _pingAll();
-  }
-
   Widget _buildInfoRow(IconData icon, String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -152,7 +173,7 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(width: 16),
               Text(
                 label,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                   color: Colors.black87,
@@ -162,7 +183,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           Text(
             value,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
               color: Colors.black87,
@@ -177,13 +198,12 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: RefreshIndicator(
-        onRefresh: _refreshData, // Trigger the refresh
+        onRefresh: _initNetworkInfo,
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: SingleChildScrollView(
             child: Column(
               children: [
-                // Network Info Card
                 Card(
                   elevation: 4,
                   shape: RoundedRectangleBorder(
@@ -192,24 +212,31 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildInfoRow(Icons.wifi, 'Wifi Name', _wifiName),
+                        _buildInfoRow(Icons.wifi, 'WiFi Name', _wifiName),
                         Divider(),
                         _buildInfoRow(Icons.perm_device_information,
                             'Device IP', _deviceIP),
                         Divider(),
-                        _buildInfoRow(
-                            Icons.router, 'Device Gateway', _deviceGateway),
+                        _buildInfoRow(Icons.router, 'Gateway', _deviceGateway),
                         Divider(),
                         _buildInfoRow(
                             Icons.public, 'Public IP', _internetPublicIP),
+                        Divider(),
+                        _buildInfoRow(
+                            Icons.network_check, 'Link Speed', _linkSpeed),
+                        Divider(),
+                        _buildInfoRow(Icons.signal_cellular_alt,
+                            'Signal Strength', _signalStrength),
+                        Divider(),
+                        _buildInfoRow(Icons.wifi, 'Frequency', _frequency),
+                        Divider(),
+                        _buildInfoRow(Icons.wifi_lock, 'RSSI', _rssi),
                       ],
                     ),
                   ),
                 ),
                 const SizedBox(height: 20),
-                // Ping Signal Card
                 Card(
                   elevation: 4,
                   shape: RoundedRectangleBorder(
