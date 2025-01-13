@@ -11,203 +11,125 @@ class ScanScreen extends StatefulWidget {
 
 class _ScanScreenState extends State<ScanScreen> {
   List<WiFiAccessPoint> accessPoints = <WiFiAccessPoint>[];
-  StreamSubscription<List<WiFiAccessPoint>>? subscription;
-  bool shouldCheckCan = true;
+  Timer? scanTimer;
 
-  bool get isStreaming => subscription != null;
-
-  Future<void> _startScan(BuildContext context) async {
-    if (shouldCheckCan) {
-      final can = await WiFiScan.instance.canStartScan();
-      if (can != CanStartScan.yes) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Cannot start scan: $can")),
-          );
-        }
-        return;
-      }
-    }
-
-    final result = await WiFiScan.instance.startScan();
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("startScan: $result")),
-      );
-    }
-
-    if (mounted) {
-      setState(() => accessPoints = <WiFiAccessPoint>[]);
-    }
-  }
-
-  Future<bool> _canGetScannedResults(BuildContext context) async {
-    if (shouldCheckCan) {
-      final can = await WiFiScan.instance.canGetScannedResults();
-      if (can != CanGetScannedResults.yes) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Cannot get scanned results: $can")),
-          );
-        }
-        accessPoints = <WiFiAccessPoint>[];
-        return false;
-      }
-    }
-    return true;
-  }
-
-  Future<void> _getScannedResults(BuildContext context) async {
-    if (await _canGetScannedResults(context)) {
-      final results = await WiFiScan.instance.getScannedResults();
-      if (mounted) {
-        setState(() => accessPoints = results);
-      }
-    }
-  }
-
-  Future<void> _startListeningToScanResults(BuildContext context) async {
-    if (await _canGetScannedResults(context)) {
-      subscription =
-          WiFiScan.instance.onScannedResultsAvailable.listen((result) {
-        if (mounted) {
-          setState(() => accessPoints = result);
-        }
-      });
-    }
-  }
-
-  void _stopListeningToScanResults() {
-    subscription?.cancel();
-    if (mounted) {
-      setState(() => subscription = null);
-    }
+  @override
+  void initState() {
+    super.initState();
+    _startScanning();
+    _setupPeriodicScan();
   }
 
   @override
   void dispose() {
-    _stopListeningToScanResults();
+    scanTimer?.cancel();
     super.dispose();
   }
 
-  Widget _buildToggle({
-    String? label,
-    bool value = false,
-    ValueChanged<bool>? onChanged,
-    Color? activeColor,
-  }) =>
-      Row(
-        children: [
-          if (label != null) Text(label),
-          Switch(value: value, onChanged: onChanged, activeColor: activeColor),
-        ],
-      );
+  Future<void> _startScanning() async {
+    final canStartScan = await WiFiScan.instance.canStartScan();
+    if (canStartScan == CanStartScan.yes) {
+      await WiFiScan.instance.startScan();
+      _getScannedResults();
+    }
+  }
+
+  Future<void> _getScannedResults() async {
+    final canGetResults = await WiFiScan.instance.canGetScannedResults();
+    if (canGetResults == CanGetScannedResults.yes) {
+      final results = await WiFiScan.instance.getScannedResults();
+      if (mounted) {
+        setState(() {
+          accessPoints = results;
+        });
+      }
+    }
+  }
+
+  void _setupPeriodicScan() {
+    scanTimer = Timer.periodic(const Duration(seconds: 10), (timer) async {
+      await _startScanning();
+    });
+  }
+
+  Color _getSignalColor(int level) {
+    if (level > -50) {
+      return const Color(0xFF599E41); // Green
+    } else if (level <= -50 && level >= -60) {
+      return const Color(0xFF4B4B91); // Blueish-purple
+    } else if (level <= -61 && level >= -70) {
+      return const Color(0xFF015B71); // Teal
+    } else {
+      return const Color(0xFFD60200); // Red
+    }
+  }
+
+  // Refresh method to reload data when user pulls down
+  Future<void> _refreshData() async {
+    await _startScanning();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.max,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.perm_scan_wifi),
-                  label: const Text('SCAN'),
-                  onPressed: () async => _startScan(context),
-                ),
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('GET'),
-                  onPressed: () async => _getScannedResults(context),
-                ),
-                _buildToggle(
-                  label: "STREAM",
-                  value: isStreaming,
-                  onChanged: (shouldStream) async => shouldStream
-                      ? await _startListeningToScanResults(context)
-                      : _stopListeningToScanResults(),
-                ),
-              ],
-            ),
-            const Divider(),
-            Flexible(
-              child: Center(
-                child: accessPoints.isEmpty
-                    ? const Text("NO SCANNED RESULTS")
-                    : ListView.builder(
-                        itemCount: accessPoints.length,
-                        itemBuilder: (context, i) =>
-                            _AccessPointTile(accessPoint: accessPoints[i])),
+      body: RefreshIndicator(
+        onRefresh: _refreshData, // Trigger data refresh on pull down
+        child: accessPoints.isEmpty
+            ? const Center(child: Text("No nearby Wi-Fi networks found."))
+            : ListView.builder(
+                itemCount: accessPoints.length,
+                itemBuilder: (context, index) {
+                  final ap = accessPoints[index];
+                  final signalColor = _getSignalColor(ap.level);
+
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                    child: Column(
+                      children: [
+                        ListTile(
+                          contentPadding:
+                              const EdgeInsets.symmetric(vertical: 2.0),
+                          leading: Icon(
+                            Icons.wifi,
+                            color: signalColor,
+                          ),
+                          title: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      ap.ssid.isNotEmpty
+                                          ? ap.ssid
+                                          : "**EMPTY**",
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    Text("Frequency: ${ap.frequency} MHz"),
+                                  ],
+                                ),
+                              ),
+                              Text(
+                                "${ap.level} dBm",
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color:
+                                      signalColor, // Apply color to the level text
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Divider(), // Add divider after each list item
+                      ],
+                    ),
+                  );
+                },
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _AccessPointTile extends StatelessWidget {
-  final WiFiAccessPoint accessPoint;
-
-  const _AccessPointTile({required this.accessPoint});
-
-  Widget _buildInfo(String label, dynamic value) => Container(
-        decoration: const BoxDecoration(
-          border: Border(bottom: BorderSide(color: Colors.grey)),
-        ),
-        child: Row(
-          children: [
-            Text(
-              "$label: ",
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            Expanded(child: Text(value.toString()))
-          ],
-        ),
-      );
-
-  @override
-  Widget build(BuildContext context) {
-    final title = accessPoint.ssid.isNotEmpty ? accessPoint.ssid : "**EMPTY**";
-    final signalIcon = accessPoint.level >= -80
-        ? Icons.signal_wifi_4_bar
-        : Icons.signal_wifi_0_bar;
-    return ListTile(
-      visualDensity: VisualDensity.compact,
-      leading: Icon(signalIcon),
-      title: Text(title),
-      subtitle: Text(accessPoint.capabilities),
-      onTap: () => showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Text(title),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildInfo("BSSDI", accessPoint.bssid),
-              _buildInfo("Capability", accessPoint.capabilities),
-              _buildInfo("frequency", "${accessPoint.frequency}MHz"),
-              _buildInfo("level", accessPoint.level),
-              _buildInfo("standard", accessPoint.standard),
-              _buildInfo(
-                  "centerFrequency0", "${accessPoint.centerFrequency0}MHz"),
-              _buildInfo(
-                  "centerFrequency1", "${accessPoint.centerFrequency1}MHz"),
-              _buildInfo("channelWidth", accessPoint.channelWidth),
-              _buildInfo("isPasspoint", accessPoint.isPasspoint),
-              _buildInfo(
-                  "operatorFriendlyName", accessPoint.operatorFriendlyName),
-              _buildInfo("venueName", accessPoint.venueName),
-              _buildInfo("is80211mcResponder", accessPoint.is80211mcResponder),
-            ],
-          ),
-        ),
       ),
     );
   }
