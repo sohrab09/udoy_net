@@ -7,7 +7,6 @@ import 'package:network_info_plus/network_info_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
-import 'dart:convert';
 import 'ping_service.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -88,11 +87,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _getPublicIP() async {
     try {
-      final response = await http.get(Uri.parse('https://ipinfo.io/json'));
+      final response = await http.get(Uri.parse('https://api.ipify.org/'));
       if (response.statusCode == 200) {
-        final Map<String, dynamic> data = json.decode(response.body);
+        final String ip = response.body;
         setState(() {
-          _internetPublicIP = data['ip'] ?? 'Unknown';
+          _internetPublicIP = ip;
         });
       }
     } catch (e) {
