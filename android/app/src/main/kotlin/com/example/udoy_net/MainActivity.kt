@@ -37,8 +37,6 @@ class MainActivity : FlutterActivity() {
                             val wifiDetails = getWifiDetails()
                             if (wifiDetails != null) {
                                 result.success(wifiDetails)
-                                // Log the Wi-Fi details to the console
-                                Log.d("WiFiDetails", "Wi-Fi Details: $wifiDetails")
                             } else {
                                 result.error("UNAVAILABLE", "WiFi details not available", null)
                             }

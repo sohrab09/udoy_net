@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'screens/home_screen.dart';
 import 'screens/scan_screen.dart';
 import 'screens/discover_screen.dart';
+import 'screens/login_screen.dart'; // Import login screen
 import 'widgets/custom_bottom_navigation_bar.dart';
 
 void main() {
@@ -17,7 +18,11 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const HomePage(),
+      initialRoute: '/login', // Initial route is login screen
+      routes: {
+        '/login': (context) => const LoginScreen(),
+        '/home': (context) => const HomePage(),
+      },
     );
   }
 }

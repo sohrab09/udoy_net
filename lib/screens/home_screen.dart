@@ -8,6 +8,8 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'ping_service.dart';
+import 'dart:convert';
+import 'package:udoy_net/screens/error_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -33,21 +35,29 @@ class _HomeScreenState extends State<HomeScreen> {
   String _rssi = 'Unknown';
 
   final NetworkInfo _networkInfo = NetworkInfo();
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _initNetworkInfo().then((_) {
-      _pingAll();
-      _getPublicIP();
-      _getWifiDetails();
+    _initialize();
+  }
 
-      Timer.periodic(const Duration(seconds: 5), (timer) {
-        _pingAll();
-        _getPublicIP();
-        setState(() {});
-      });
+  Future<void> _initialize() async {
+    setState(() => _isLoading = true);
+
+    await _initNetworkInfo();
+    await _pingAll();
+    await _getPublicIP();
+    await _getWifiDetails();
+    await _verifyIPAddress(_internetPublicIP);
+
+    // recall the _pingAll method after 5 seconds
+    Timer.periodic(const Duration(seconds: 5), (timer) {
+      _pingAll();
     });
+
+    setState(() => _isLoading = false);
   }
 
   Future<void> _initNetworkInfo() async {
@@ -113,7 +123,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   String _getSignalStrengthDescription(int? signalStrength) {
-    if (signalStrength == null) return "Very Weak";
+    if (signalStrength == 1 || signalStrength == null) return "Very Weak";
     if (signalStrength == 4) return "Excellent";
     if (signalStrength == 3) return "Good";
     if (signalStrength == 2) return "Poor";
@@ -125,6 +135,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final response = await http.get(Uri.parse('https://api.ipify.org/'));
       if (response.statusCode == 200) {
         final String ip = response.body;
+        await _verifyIPAddress(ip);
         setState(() {
           _internetPublicIP = ip;
         });
@@ -133,6 +144,32 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() {
         _internetPublicIP = 'Failed to get Public IP';
       });
+    }
+  }
+
+  Future<void> _verifyIPAddress(String ipAddress) async {
+    final url = Uri.parse(
+        'https://api.udoyadn.com/api/Auth/GetUdoyNetworkStatus?ip=$ipAddress');
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data == false) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => ErrorScreen()),
+          );
+        }
+      } else {
+        print('Request failed with status verify: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error in IP verification: $e');
     }
   }
 
@@ -148,7 +185,6 @@ class _HomeScreenState extends State<HomeScreen> {
           _gatewayPingResult = "N/A";
         });
       }
-
       final internetPing = await PingService.ping("8.8.8.8");
       setState(() {
         _internetPingResult = internetPing.isNotEmpty ? internetPing : "N/A";
@@ -162,8 +198,21 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildInfoRow(IconData icon, String label, String value) {
+    Color signalStrengthColor = Colors.black87; // Default color
+
+    // Add the signal strength color logic
+    if (value == "Very Weak") {
+      signalStrengthColor = Color(0xFFD60200); // Red for very weak signal
+    } else if (value == "Poor") {
+      signalStrengthColor = Color(0xFF015B71); // Blue for poor signal
+    } else if (value == "Good") {
+      signalStrengthColor = Color(0xFF4B4B91); // Purple for good signal
+    } else if (value == "Excellent") {
+      signalStrengthColor = Color(0xFF599E41); // Green for excellent signal
+    }
+
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -183,10 +232,10 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: Colors.black87,
+              color: signalStrengthColor, // Apply the dynamic color here
             ),
           ),
         ],
@@ -197,124 +246,129 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: RefreshIndicator(
-        onRefresh: _initNetworkInfo,
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: SingleChildScrollView(
-            child: Column(
-              children: [
-                Card(
-                  elevation: 4,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      children: [
-                        _buildInfoRow(Icons.wifi, 'WiFi Name', _wifiName),
-                        Divider(),
-                        _buildInfoRow(Icons.perm_device_information,
-                            'Device IP', _deviceIP),
-                        Divider(),
-                        _buildInfoRow(Icons.router, 'Gateway', _deviceGateway),
-                        Divider(),
-                        _buildInfoRow(
-                            Icons.public, 'Public IP', _internetPublicIP),
-                        Divider(),
-                        _buildInfoRow(
-                            Icons.network_check, 'Link Speed', _linkSpeed),
-                        Divider(),
-                        _buildInfoRow(Icons.signal_cellular_alt,
-                            'Signal Strength', _signalStrength),
-                        Divider(),
-                        _buildInfoRow(Icons.wifi, 'Frequency', _frequency),
-                        Divider(),
-                        _buildInfoRow(Icons.wifi_lock, 'RSSI', _rssi),
-                      ],
-                    ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: _initialize,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    children: [
+                      _buildInfoCard(),
+                      const SizedBox(height: 20),
+                      _buildPingCard(),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 20),
-                Card(
-                  elevation: 4,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(Icons.router, color: Colors.blueAccent),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Gateway: $_deviceGateway',
-                                  style: TextStyle(
-                                    color: Colors.black87,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            Text(
-                              _gatewayPingResult,
-                              style: TextStyle(
-                                color: _gatewayPingResult == "N/A"
-                                    ? Colors
-                                        .red // Change color to red if ping result is "N/A"
-                                    : (_gatewayPingResult == "Ping failed:"
-                                        ? Colors.red
-                                        : Colors.green),
-                              ),
-                            ),
-                          ],
-                        ),
-                        Divider(),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(Icons.public, color: Colors.blueAccent),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Internet: 8.8.8.8',
-                                  style: TextStyle(
-                                    color: Colors.black87,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            Text(
-                              _internetPingResult,
-                              style: TextStyle(
-                                color: _internetPingResult == "N/A"
-                                    ? Colors.red
-                                    : (_internetPingResult == "Ping failed:"
-                                        ? Colors.red
-                                        : Colors.green),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
+    );
+  }
+
+  Widget _buildInfoCard() {
+    return Card(
+      elevation: 5,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
+      ),
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Wi-Fi Network Details',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blueAccent,
+                  ),
+            ),
+            const SizedBox(height: 8),
+            _buildInfoRow(Icons.wifi, 'Wi-Fi Name', _wifiName),
+            const Divider(),
+            _buildInfoRow(
+                Icons.perm_device_information, 'Device IP', _deviceIP),
+            const Divider(),
+            _buildInfoRow(Icons.router, 'Gateway', _deviceGateway),
+            const Divider(),
+            _buildInfoRow(Icons.public, 'Public IP', _internetPublicIP),
+            const Divider(),
+            _buildInfoRow(Icons.speed, 'Link Speed', _linkSpeed),
+            const Divider(),
+            _buildInfoRow(
+                Icons.signal_wifi_4_bar, 'Signal Strength', _signalStrength),
+            const Divider(),
+            _buildInfoRow(Icons.network_wifi, 'Frequency', _frequency),
+            const Divider(),
+            _buildInfoRow(Icons.network_cell, 'RSSI', _rssi),
+          ],
         ),
       ),
+    );
+  }
+
+  Widget _buildPingCard() {
+    return Card(
+      elevation: 5,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
+      ),
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Ping Results',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blueAccent,
+                  ),
+            ),
+            const SizedBox(height: 8),
+            _buildPingRow(Icons.router, 'Gateway', _gatewayPingResult),
+            const Divider(),
+            _buildPingRow(
+                Icons.public, 'Internet: 8.8.8.8', _internetPingResult),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPingRow(IconData icon, String label, String result) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Row(
+          children: [
+            Icon(icon, color: Colors.blueAccent),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.black87,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+        Text(
+          result,
+          style: TextStyle(
+            color: result == "N/A" || result == "Ping Failed"
+                ? Colors.red
+                : Colors.green,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
     );
   }
 }
