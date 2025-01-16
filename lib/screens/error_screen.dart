@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:udoy_net/screens/login_screen.dart';
 
 class ErrorScreen extends StatelessWidget {
+  const ErrorScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

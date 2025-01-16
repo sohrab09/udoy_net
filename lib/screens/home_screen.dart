@@ -330,7 +330,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
             ),
             const SizedBox(height: 8),
-            _buildPingRow(Icons.router, 'Gateway', _gatewayPingResult),
+            _buildPingRow(
+                Icons.router, 'Gateway: $_deviceGateway', _gatewayPingResult),
             const Divider(),
             _buildPingRow(
                 Icons.public, 'Internet: 8.8.8.8', _internetPingResult),
