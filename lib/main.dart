@@ -56,6 +56,12 @@ class HomePageState extends State<HomePage> {
   }
 
   @override
+  void dispose() {
+    // Cancel any ongoing operations here to prevent updates after the widget is unmounted
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -78,14 +84,17 @@ class HomePageState extends State<HomePage> {
         ),
         titleSpacing: 0,
         toolbarHeight: 60,
-        backgroundColor: Color(0xFF65AA4B),
+        backgroundColor: const Color(0xFF65AA4B),
         elevation: 10,
         actions: <Widget>[
           IconButton(
             icon: const Icon(Icons.send, color: Colors.white, size: 30),
             tooltip: 'Show Snackbar',
             onPressed: () {
-              handleSubmitData('');
+              // Ensure widget is still mounted before calling the function
+              if (mounted) {
+                handleSubmitData('');
+              }
             },
           ),
         ],
@@ -97,9 +106,12 @@ class HomePageState extends State<HomePage> {
       bottomNavigationBar: CustomBottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
+          // Ensure widget is still mounted before calling setState
+          if (mounted) {
+            setState(() {
+              _currentIndex = index;
+            });
+          }
         },
       ),
     );
