@@ -85,7 +85,7 @@ class MainActivity : FlutterActivity() {
                                     wifiInfo.linkSpeed // Added link speed in Mbps here as well
                     )
             // Log the details to the console
-            Log.d("WiFiDetails", "Wi-Fi Details: $wifiDetails")
+            // Log.d("WiFiDetails", "Wi-Fi Details: $wifiDetails")
             wifiDetails
         } else {
             null

@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'screens/home_screen.dart';
 import 'screens/scan_screen.dart';
 import 'screens/discover_screen.dart';
-import 'screens/login_screen.dart'; // Import login screen
+import 'screens/login_screen.dart';
 import 'widgets/custom_bottom_navigation_bar.dart';
-import 'screens/my_class.dart';
 import 'package:udoy_net/models/network_data.dart';
+import 'dart:convert';
+import 'screens/wifi_class.dart';
+
 void main() {
   runApp(const MyApp());
 }
@@ -19,7 +21,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      initialRoute: '/login', // Initial route is login screen
+      initialRoute: '/login',
       routes: {
         '/login': (context) => const LoginScreen(),
         '/home': (context) => const HomePage(),
@@ -51,25 +53,18 @@ class HomePageState extends State<HomePage> {
   }
 
   void handleSubmitData(String data) async {
-    // Pass the data to the server
-
-    MyClass myClass = MyClass();
-
-    // Call the greetUser method
-
+    WifiClass wifiClass = WifiClass();
     try {
-      NetworkData data = await myClass.getNetworkData();
-      print('Data submitted: $data');
+      NetworkData networkData = await wifiClass.getNetworkData();
+      String jsonData = jsonEncode(networkData.toJson());
+      print('JSON Data: $jsonData');
     } catch (error) {
       print('Error occurred: $error');
     }
-
-
   }
 
   @override
   void dispose() {
-    // Cancel any ongoing operations here to prevent updates after the widget is unmounted
     super.dispose();
   }
 
@@ -103,7 +98,6 @@ class HomePageState extends State<HomePage> {
             icon: const Icon(Icons.send, color: Colors.white, size: 30),
             tooltip: 'Show Snackbar',
             onPressed: () {
-              // Ensure widget is still mounted before calling the function
               if (mounted) {
                 handleSubmitData('');
               }
@@ -118,7 +112,6 @@ class HomePageState extends State<HomePage> {
       bottomNavigationBar: CustomBottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) {
-          // Ensure widget is still mounted before calling setState
           if (mounted) {
             setState(() {
               _currentIndex = index;

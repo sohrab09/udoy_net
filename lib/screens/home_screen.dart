@@ -1,5 +1,3 @@
-
-
 import 'dart:async';
 import 'dart:developer' as developer;
 import 'dart:io';
@@ -151,7 +149,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _verifyIPAddress(String ipAddress) async {
     final url = Uri.parse(
-        'https://api.udoyadn.com/api/Auth/GetUdoyNetworkStatus?ip=$ipAddress');
+        // 'https://api.udoyadn.com/api/Auth/GetUdoyNetworkStatus?ip=$ipAddress');
+        'https://api.udoyadn.com/api/Auth/GetUdoyNetworkStatus?ip=202.51.180.246');
 
     try {
       final response = await http.post(
