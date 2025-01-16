@@ -4,7 +4,8 @@ import 'screens/scan_screen.dart';
 import 'screens/discover_screen.dart';
 import 'screens/login_screen.dart'; // Import login screen
 import 'widgets/custom_bottom_navigation_bar.dart';
-
+import 'screens/my_class.dart';
+import 'package:udoy_net/models/network_data.dart';
 void main() {
   runApp(const MyApp());
 }
@@ -49,10 +50,21 @@ class HomePageState extends State<HomePage> {
     ]);
   }
 
-  void handleSubmitData(String data) {
+  void handleSubmitData(String data) async {
     // Pass the data to the server
-    print('Data submitted: $data');
-    // Add your server submission logic here
+
+    MyClass myClass = MyClass();
+
+    // Call the greetUser method
+
+    try {
+      NetworkData data = await myClass.getNetworkData();
+      print('Data submitted: $data');
+    } catch (error) {
+      print('Error occurred: $error');
+    }
+
+
   }
 
   @override
