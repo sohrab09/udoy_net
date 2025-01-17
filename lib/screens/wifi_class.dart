@@ -33,7 +33,7 @@ class WifiClass {
   }
 
   Future<NetworkData> getNetworkData() async {
-    final NetworkInfo _networkInfo = NetworkInfo();
+    final NetworkInfo networkInfo = NetworkInfo();
 
     // Initialize network data variables
     String wifiName = '', wifiIPv4 = '', wifiGatewayIP = '', publicIP = '';
@@ -45,12 +45,12 @@ class WifiClass {
       () async {
         if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
           if (await Permission.locationWhenInUse.request().isGranted) {
-            return await _networkInfo.getWifiName() ?? '';
+            return await networkInfo.getWifiName() ?? '';
           } else {
             return 'Unauthorized to get Wifi Name';
           }
         } else {
-          return await _networkInfo.getWifiName() ?? '';
+          return await networkInfo.getWifiName() ?? '';
         }
       },
       'Failed to get Wifi Name',
@@ -58,13 +58,13 @@ class WifiClass {
 
     // Get the wifi IPv4 address
     wifiIPv4 = await getDataFromNetwork(
-      () async => await _networkInfo.getWifiIP() ?? '',
+      () async => await networkInfo.getWifiIP() ?? '',
       'Failed to get Wifi IPv4',
     );
 
     // Get the wifi gateway address
     wifiGatewayIP = await getDataFromNetwork(
-      () async => await _networkInfo.getWifiGatewayIP() ?? '',
+      () async => await networkInfo.getWifiGatewayIP() ?? '',
       'Failed to get Wifi gateway address',
     );
 

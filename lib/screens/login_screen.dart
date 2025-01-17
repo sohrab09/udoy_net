@@ -93,6 +93,36 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  // Future<void> getDatTime() async {
+  //   final url = Uri.parse('https://api.udoyadn.com/api/Auth/GetDateTime');
+  //   try {
+  //     final response = await http.post(url);
+  //     if (response.statusCode == 200) {
+  //       final data = response.body.trim();
+  //       final dateParts = data.split(' ')[0].split('/');
+  //       final timeParts = data.split(' ')[1].split(':');
+  //       final period = data.split(' ')[2];
+
+  //       final date = dateParts[0];
+  //       int hour = int.parse(timeParts[0]);
+  //       if (period == 'PM' && hour != 12) {
+  //         hour += 12;
+  //       } else if (period == 'AM' && hour == 12) {
+  //         hour = 0;
+  //       }
+
+  //       setState(() {
+  //         this.date = date;
+  //         time = '$hour';
+  //       });
+  //     } else {
+  //       print('Request failed with status: ${response.statusCode}');
+  //     }
+  //   } catch (e) {
+  //     print('Error: $e');
+  //   }
+  // }
+
   Future<void> getDatTime() async {
     final url = Uri.parse('https://api.udoyadn.com/api/Auth/GetDateTime');
     try {
@@ -111,9 +141,12 @@ class _LoginScreenState extends State<LoginScreen> {
           hour = 0;
         }
 
+        // Format the hour as a two-digit string
+        final formattedHour = hour.toString().padLeft(2, '0');
+
         setState(() {
           this.date = date;
-          time = '$hour';
+          time = formattedHour;
         });
       } else {
         print('Request failed with status: ${response.statusCode}');
@@ -145,7 +178,7 @@ class _LoginScreenState extends State<LoginScreen> {
     };
 
     String jsonBody = json.encode(requestBody);
-    // print('Request Body: $jsonBody');
+    print('Request Body: $jsonBody');
     final url = Uri.parse('https://api.udoyadn.com/api/Auth/GetAuthToken');
 
     try {
