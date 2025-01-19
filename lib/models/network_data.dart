@@ -9,6 +9,7 @@ class NetworkData {
   final String rssi;
   final String gatewayPing;
   final String internetPing;
+  final List<Map<String, dynamic>>? availableNetworks;
 
   NetworkData({
     required this.wifiName,
@@ -21,6 +22,7 @@ class NetworkData {
     required this.rssi,
     required this.gatewayPing,
     required this.internetPing,
+    this.availableNetworks,
   });
 
   factory NetworkData.fromMap(Map<String, dynamic> map) {
@@ -35,6 +37,9 @@ class NetworkData {
       rssi: map['rssi'] ?? '',
       gatewayPing: map['gatewayPing'] ?? '',
       internetPing: map['internetPing'] ?? '',
+      availableNetworks: map['availableNetworks'] != null
+          ? List<Map<String, dynamic>>.from(map['availableNetworks'])
+          : null, // Handle the new variable
     );
   }
 
@@ -51,11 +56,12 @@ class NetworkData {
       'rssi': rssi,
       'gatewayPing': gatewayPing,
       'internetPing': internetPing,
+      'availableNetworks': availableNetworks,
     };
   }
 
   @override
   String toString() {
-    return 'NetworkData(wifiName: $wifiName, deviceIP: $deviceIP, gateway: $gateway, publicIP: $publicIP, linkSpeed: $linkSpeed, signalStrength: $signalStrength, freequency: $freequency, rssi: $rssi, gatewayPing: $gatewayPing, internetPing: $internetPing)';
+    return 'NetworkData(wifiName: $wifiName, deviceIP: $deviceIP, gateway: $gateway, publicIP: $publicIP, linkSpeed: $linkSpeed, signalStrength: $signalStrength, freequency: $freequency, rssi: $rssi, gatewayPing: $gatewayPing, internetPing: $internetPing, availableNetworks: $availableNetworks)';
   }
 }
