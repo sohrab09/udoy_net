@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:udoy_net/screens/discover_connected_ip.dart';
+import 'package:udoy_net/screens/login_screen.dart';
 import 'package:udoy_net/screens/wifi_available.dart';
+import 'dart:convert';
+import 'screens/error_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/scan_screen.dart';
 import 'screens/discover_screen.dart';
-import 'screens/login_screen.dart';
 import 'widgets/custom_bottom_navigation_bar.dart';
 import 'package:udoy_net/models/network_data.dart';
 import 'screens/wifi_class.dart';
-import 'dart:convert'; // Import for jsonEncode
 
 void main() {
   runApp(const MyApp());
@@ -42,6 +44,7 @@ class HomePage extends StatefulWidget {
 class HomePageState extends State<HomePage> {
   int _currentIndex = 0;
   bool _isLoading = false; // Loading state variable
+  String _internetPublicIP = ''; // Store the public IP
 
   final List<Widget> _pages = [];
 
@@ -53,6 +56,55 @@ class HomePageState extends State<HomePage> {
       ScanScreen(),
       DiscoverScreen(),
     ]);
+
+    // Fetch the public IP when the app starts
+    _getPublicIP();
+    _verifyIPAddress(_internetPublicIP);
+  }
+
+  // Function to fetch the public IP
+  Future<void> _getPublicIP() async {
+    try {
+      final response = await http.get(Uri.parse('https://api.ipify.org/'));
+      if (response.statusCode == 200) {
+        final String ip = response.body;
+        await _verifyIPAddress(ip);
+        setState(() {
+          _internetPublicIP = ip;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _internetPublicIP = 'Failed to get Public IP';
+      });
+    }
+  }
+
+  Future<void> _verifyIPAddress(String ipAddress) async {
+    final url = Uri.parse(
+        'https://api.udoyadn.com/api/Auth/GetUdoyNetworkStatus?ip=$ipAddress');
+    // 'https://api.udoyadn.com/api/Auth/GetUdoyNetworkStatus?ip=192.168.1.1');
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data == false) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => ErrorScreen()),
+          );
+        }
+      } else {
+        print('Request failed with status verify: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error in IP verification: $e');
+    }
   }
 
   // Function to handle submission and show loading spinner
@@ -159,8 +211,6 @@ class HomePageState extends State<HomePage> {
                 ),
               ]),
         ),
-        titleSpacing: 0,
-        toolbarHeight: 60,
         backgroundColor: const Color(0xFF65AA4B),
         elevation: 10,
         actions: <Widget>[
@@ -180,9 +230,15 @@ class HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _pages,
+      body: Column(
+        children: [
+          Expanded(
+            child: IndexedStack(
+              index: _currentIndex,
+              children: _pages,
+            ),
+          ),
+        ],
       ),
       bottomNavigationBar: CustomBottomNavigationBar(
         currentIndex: _currentIndex,

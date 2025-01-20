@@ -16,15 +16,13 @@ class _LoginScreenState extends State<LoginScreen> {
   final _userIdController = TextEditingController(text: '09610389428');
   final _passwordController = TextEditingController(text: '88');
   bool _obscurePassword = true;
-
+  bool isLoading = false; // Track loading state
   String ipAddress = '';
   Timer? _timer;
 
   String date = '';
   String time = '';
   String authToken = '';
-
-  bool isLoading = true;
 
   @override
   void initState() {
@@ -49,28 +47,21 @@ class _LoginScreenState extends State<LoginScreen> {
       final response = await http.get(url);
       if (response.statusCode == 200) {
         final data = response.body.trim();
-        // print('IP Address: $data');
         await verifyIPAddress(data);
         setState(() {
           ipAddress = data;
-          isLoading = false;
         });
       } else {
         print('Request failed with status code: ${response.statusCode}');
       }
     } catch (e) {
       print('Error: $e');
-      setState(() {
-        isLoading = false;
-      });
     }
   }
 
   Future<void> verifyIPAddress(String ipAddress) async {
     final url = Uri.parse(
-        // 'https://api.udoyadn.com/api/Auth/GetUdoyNetworkStatus?ip=$ipAddress');
-        'https://api.udoyadn.com/api/Auth/GetUdoyNetworkStatus?ip=202.51.180.246');
-
+        'https://api.udoyadn.com/api/Auth/GetUdoyNetworkStatus?ip=$ipAddress');
     try {
       final response = await http.post(
         url,
@@ -93,36 +84,6 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  // Future<void> getDatTime() async {
-  //   final url = Uri.parse('https://api.udoyadn.com/api/Auth/GetDateTime');
-  //   try {
-  //     final response = await http.post(url);
-  //     if (response.statusCode == 200) {
-  //       final data = response.body.trim();
-  //       final dateParts = data.split(' ')[0].split('/');
-  //       final timeParts = data.split(' ')[1].split(':');
-  //       final period = data.split(' ')[2];
-
-  //       final date = dateParts[0];
-  //       int hour = int.parse(timeParts[0]);
-  //       if (period == 'PM' && hour != 12) {
-  //         hour += 12;
-  //       } else if (period == 'AM' && hour == 12) {
-  //         hour = 0;
-  //       }
-
-  //       setState(() {
-  //         this.date = date;
-  //         time = '$hour';
-  //       });
-  //     } else {
-  //       print('Request failed with status: ${response.statusCode}');
-  //     }
-  //   } catch (e) {
-  //     print('Error: $e');
-  //   }
-  // }
-
   Future<void> getDatTime() async {
     final url = Uri.parse('https://api.udoyadn.com/api/Auth/GetDateTime');
     try {
@@ -141,7 +102,6 @@ class _LoginScreenState extends State<LoginScreen> {
           hour = 0;
         }
 
-        // Format the hour as a two-digit string
         final formattedHour = hour.toString().padLeft(2, '0');
 
         setState(() {
@@ -178,7 +138,6 @@ class _LoginScreenState extends State<LoginScreen> {
     };
 
     String jsonBody = json.encode(requestBody);
-    // print('Request Body: $jsonBody');
     final url = Uri.parse('https://api.udoyadn.com/api/Auth/GetAuthToken');
 
     try {
@@ -193,12 +152,17 @@ class _LoginScreenState extends State<LoginScreen> {
         authToken = data['token'];
         await handleLogin(userId, password, authToken);
       } else {
-        print('Request failed with status: ${response.statusCode}');
+        setState(() {
+          isLoading = false; // Hide spinner if login fails
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Login Failed')),
         );
       }
     } catch (e) {
+      setState(() {
+        isLoading = false; // Hide spinner if there's an error
+      });
       print('Error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('An error occurred')),
@@ -233,17 +197,26 @@ class _LoginScreenState extends State<LoginScreen> {
       if (response.statusCode == 200 && data['success'] == true) {
         Navigator.pushReplacementNamed(context, '/home');
       } else {
+        setState(() {
+          isLoading = false; // Show the button again if login fails
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Login Failed')),
         );
       }
     } catch (e) {
+      setState(() {
+        isLoading = false; // Show the button again if error occurs
+      });
       print('Error: $e');
     }
   }
 
   void _login() async {
     if (_formKey.currentState!.validate()) {
+      setState(() {
+        isLoading = true; // Show the spinner when login is clicked
+      });
       await sendRequest(_userIdController.text, _passwordController.text);
     }
   }
@@ -263,145 +236,143 @@ class _LoginScreenState extends State<LoginScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   SizedBox(height: 100),
-                  isLoading
-                      ? CircularProgressIndicator() // Show loading spinner
-                      : Column(
-                          children: [
-                            Container(
-                              width: 100,
-                              height: 100,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Colors.white,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black12,
-                                    blurRadius: 10,
-                                    offset: Offset(0, 5),
-                                  ),
-                                ],
-                              ),
-                              child: Icon(
-                                Icons.wifi,
-                                size: 50,
-                                color: Color(0xFF65AA4B),
-                              ),
-                            ),
-                            Text(
-                              "UDOY",
-                              style: TextStyle(
-                                fontSize: 32,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                                letterSpacing: 2,
-                              ),
-                            ),
-                            SizedBox(height: 20),
-                            Text(
-                              "Manage your network and Wi-Fi easily",
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.white70,
-                              ),
-                            ),
-                            SizedBox(height: 40),
-                          ],
+                  Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black12,
+                          blurRadius: 10,
+                          offset: Offset(0, 5),
                         ),
-                  if (!isLoading)
-                    Form(
-                      key: _formKey,
-                      child: Column(
-                        children: [
-                          TextFormField(
-                            controller: _userIdController,
-                            decoration: InputDecoration(
-                              filled: true,
-                              fillColor: Colors.white,
-                              hintText: "UserID",
-                              prefixIcon:
-                                  Icon(Icons.person, color: Colors.green),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10.0),
-                                borderSide: BorderSide.none,
-                              ),
-                            ),
-                            validator: (value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return 'UserID is required';
-                              }
-                              return null;
-                            },
-                          ),
-                          SizedBox(height: 20),
-                          TextFormField(
-                            controller: _passwordController,
-                            obscureText: _obscurePassword,
-                            decoration: InputDecoration(
-                              filled: true,
-                              fillColor: Colors.white,
-                              hintText: "Password",
-                              prefixIcon: Icon(Icons.lock, color: Colors.green),
-                              suffixIcon: IconButton(
-                                icon: Icon(
-                                  _obscurePassword
-                                      ? Icons.visibility
-                                      : Icons.visibility_off,
-                                  color: Colors.grey,
-                                ),
-                                onPressed: () {
-                                  setState(() {
-                                    _obscurePassword = !_obscurePassword;
-                                  });
-                                },
-                              ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10.0),
-                                borderSide: BorderSide.none,
-                              ),
-                            ),
-                            validator: (value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return 'Password is required';
-                              }
-                              return null;
-                            },
-                          ),
-                          SizedBox(height: 20),
-                          ElevatedButton(
-                            onPressed: _login,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green.shade700,
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 100,
-                                vertical: 15,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                            ),
-                            child: Text(
-                              "Login",
-                              style:
-                                  TextStyle(fontSize: 18, color: Colors.white),
-                            ),
-                          ),
-                          SizedBox(height: 20),
-                          TextButton(
-                            onPressed: () {
-                              // Add forgot password functionality
-                            },
-                            child: Text(
-                              "Forgot Password?",
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 16,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                      ],
                     ),
+                    child: Icon(
+                      Icons.wifi,
+                      size: 50,
+                      color: Color(0xFF65AA4B),
+                    ),
+                  ),
+                  Text(
+                    "UDOY",
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      letterSpacing: 2,
+                    ),
+                  ),
+                  SizedBox(height: 20),
+                  Text(
+                    "Manage your network and Wi-Fi easily",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.white70,
+                    ),
+                  ),
+                  SizedBox(height: 40),
+                  Form(
+                    key: _formKey,
+                    child: Column(
+                      children: [
+                        TextFormField(
+                          controller: _userIdController,
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: Colors.white,
+                            hintText: "UserID",
+                            prefixIcon: Icon(Icons.person, color: Colors.green),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10.0),
+                              borderSide: BorderSide.none,
+                            ),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'UserID is required';
+                            }
+                            return null;
+                          },
+                        ),
+                        SizedBox(height: 20),
+                        TextFormField(
+                          controller: _passwordController,
+                          obscureText: _obscurePassword,
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: Colors.white,
+                            hintText: "Password",
+                            prefixIcon: Icon(Icons.lock, color: Colors.green),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscurePassword
+                                    ? Icons.visibility
+                                    : Icons.visibility_off,
+                                color: Colors.grey,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _obscurePassword = !_obscurePassword;
+                                });
+                              },
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10.0),
+                              borderSide: BorderSide.none,
+                            ),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'Password is required';
+                            }
+                            return null;
+                          },
+                        ),
+                        SizedBox(height: 20),
+                        ElevatedButton(
+                          onPressed: isLoading
+                              ? null
+                              : _login, // Disable while loading
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green.shade700,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 100,
+                              vertical: 15,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          child: isLoading
+                              ? CircularProgressIndicator(
+                                  color: Colors.white,
+                                ) // Show loading spinner on button
+                              : Text(
+                                  'LOGIN',
+                                  style: TextStyle(
+                                      fontSize: 18, color: Colors.white),
+                                ),
+                        ),
+                        SizedBox(height: 20),
+                        TextButton(
+                          onPressed: () {
+                            // Add forgot password functionality
+                          },
+                          child: Text(
+                            "Forgot Password?",
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
