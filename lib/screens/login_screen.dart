@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:udoy_net/screens/error_screen.dart';
+import 'package:udoy_net/utils/TokenManager.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -22,7 +23,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   String date = '';
   String time = '';
-  String authToken = '';
+  // String authToken = '';
 
   @override
   void initState() {
@@ -149,11 +150,17 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        authToken = data['token'];
+
+        String authToken = data['token'];
+        String customerID = userId;
+
+        await TokenManager.setToken(authToken);
+        await TokenManager.setCustomerID(customerID);
+
         await handleLogin(userId, password, authToken);
       } else {
         setState(() {
-          isLoading = false; // Hide spinner if login fails
+          isLoading = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Login Failed')),
@@ -161,7 +168,7 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } catch (e) {
       setState(() {
-        isLoading = false; // Hide spinner if there's an error
+        isLoading = false;
       });
       print('Error: $e');
       ScaffoldMessenger.of(context).showSnackBar(

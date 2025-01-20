@@ -11,13 +11,23 @@ import 'screens/discover_screen.dart';
 import 'widgets/custom_bottom_navigation_bar.dart';
 import 'package:udoy_net/models/network_data.dart';
 import 'screens/wifi_class.dart';
+import 'package:udoy_net/utils/TokenManager.dart';
 
-void main() {
-  runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Check if the token is available
+  final token = await TokenManager.getToken();
+
+  // print('Token: $token');
+
+  runApp(MyApp(isLoggedIn: token != null && token.isNotEmpty));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final bool isLoggedIn;
+
+  const MyApp({super.key, required this.isLoggedIn});
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +35,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      initialRoute: '/login',
+      initialRoute: isLoggedIn ? '/home' : '/login',
       routes: {
         '/login': (context) => const LoginScreen(),
         '/home': (context) => const HomePage(),
@@ -45,21 +55,31 @@ class HomePageState extends State<HomePage> {
   int _currentIndex = 0;
   bool _isLoading = false; // Loading state variable
   String _internetPublicIP = ''; // Store the public IP
+  String? customerID;
+  String? token;
 
   final List<Widget> _pages = [];
 
   @override
   void initState() {
     super.initState();
-    _pages.addAll([
-      HomeScreen(),
-      ScanScreen(),
-      DiscoverScreen(),
-    ]);
+    _pages.addAll([HomeScreen(), ScanScreen(), DiscoverScreen()]);
 
     // Fetch the public IP when the app starts
     _getPublicIP();
     _verifyIPAddress(_internetPublicIP);
+    _fetchCustomerID();
+    _fetchToken();
+  }
+
+  // fetch the customer ID
+  Future<void> _fetchCustomerID() async {
+    customerID = await TokenManager.getCustomerID();
+  }
+
+  // Fetch the token
+  Future<void> _fetchToken() async {
+    token = await TokenManager.getToken();
   }
 
   // Function to fetch the public IP
@@ -80,10 +100,10 @@ class HomePageState extends State<HomePage> {
     }
   }
 
+  // Function to verify the IP address
   Future<void> _verifyIPAddress(String ipAddress) async {
     final url = Uri.parse(
         'https://api.udoyadn.com/api/Auth/GetUdoyNetworkStatus?ip=$ipAddress');
-    // 'https://api.udoyadn.com/api/Auth/GetUdoyNetworkStatus?ip=192.168.1.1');
 
     try {
       final response = await http.post(
@@ -108,7 +128,7 @@ class HomePageState extends State<HomePage> {
   }
 
   // Function to handle submission and show loading spinner
-  void handleSubmitData() async {
+  Future<void> handleSubmitData() async {
     setState(() {
       _isLoading = true; // Start loading
     });
@@ -117,57 +137,76 @@ class HomePageState extends State<HomePage> {
     IPScanner scanner = IPScanner();
     WifiAvailable wifi = WifiAvailable();
 
+    NetworkData networkData = await wifiClass.getNetworkData();
+    Map<String, bool> availableNetworks = await scanner.scanNetwork();
+    List<Map<String, dynamic>>? connectedList = await wifi.getAvailableWifi();
+
+    AllNetworkDataModel model = AllNetworkDataModel(
+      customerCode: customerID!,
+      networkData: networkData,
+      connectedList: availableNetworks,
+      availableNetworks: connectedList,
+    );
+
+    // Structuring the data as a Map to convert it to JSON
+    Map<String, dynamic> jsonData = {
+      "customerCode": model.customerCode,
+      "networkData": {
+        "wifiName": model.networkData.wifiName,
+        "deviceIP": model.networkData.deviceIP,
+        "gateway": model.networkData.gateway,
+        "publicIP": model.networkData.publicIP,
+        "linkSpeed": model.networkData.linkSpeed,
+        "signalStrength": model.networkData.signalStrength,
+        "frequency": model.networkData.freequency,
+        "rssi": model.networkData.rssi,
+        "gatewayPing": model.networkData.gatewayPing,
+        "internetPing": model.networkData.internetPing,
+      },
+      "availableNetworks": model.availableNetworks,
+      "connectedList": model.connectedList,
+      "connectedListCount": model.connectedList.length,
+    };
+
+    // Convert the data to JSON format
+    String jsonBody = jsonEncode(jsonData);
+
+    // print('JSON Data to submit: $jsonBody');
+
+    final url = Uri.parse(
+        'https://api.udoyadn.com/api/SelfcareApps/SaveCustomerNetworkData');
+
     try {
-      // Fetching network data
-      NetworkData networkData = await wifiClass.getNetworkData();
-
-      // Scanning available networks
-      Map<String, bool> availableNetworks = await scanner.scanNetwork();
-
-      // Fetching connected Wi-Fi list
-      List<Map<String, dynamic>>? connectedList = await wifi.getAvailableWifi();
-
-      // Creating the data model
-      AllNetworkDataModel model = AllNetworkDataModel(
-        customerCode: '123456',
-        networkData: networkData,
-        connectedList: availableNetworks,
-        availableNetworks: connectedList,
-      );
-
-      // Structuring the data as a Map to convert it to JSON
-      Map<String, dynamic> jsonData = {
-        "customerCode": model.customerCode,
-        "networkData": {
-          "wifiName": model.networkData.wifiName,
-          "deviceIP": model.networkData.deviceIP,
-          "gateway": model.networkData.gateway,
-          "publicIP": model.networkData.publicIP,
-          "linkSpeed": model.networkData.linkSpeed,
-          "signalStrength": model.networkData.signalStrength,
-          "frequency": model.networkData.freequency,
-          "rssi": model.networkData.rssi,
-          "gatewayPing": model.networkData.gatewayPing,
-          "internetPing": model.networkData.internetPing,
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token'
         },
-        "availableNetworks": model.availableNetworks,
-        "connectedList": model.connectedList,
-        "connectedListCount": model.connectedList.length,
-      };
-
-      // Convert the data to JSON format
-      String jsonString = jsonEncode(jsonData);
-
-      // Print or use the JSON data
-      print('JSON Data to submit: $jsonString');
-
-      // Show success snackbar
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Data submitted successfully!'),
-          backgroundColor: Colors.green,
-        ),
+        body: jsonBody,
       );
+
+      if (response.statusCode == 200) {
+        print('Data submitted successfully!');
+
+        // Show success snackbar
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Data submitted successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        print('Data submission failed!');
+
+        // Show error snackbar
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Data submission failed!'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } catch (error) {
       print('Error occurred: $error');
 
@@ -183,6 +222,15 @@ class HomePageState extends State<HomePage> {
         _isLoading = false; // End loading
       });
     }
+  }
+
+  // Function to handle logout
+  Future<void> _logout() async {
+    // Clear the token
+    await TokenManager.logout();
+
+    // Navigate to login screen
+    Navigator.pushReplacementNamed(context, '/login');
   }
 
   @override
@@ -214,6 +262,7 @@ class HomePageState extends State<HomePage> {
         backgroundColor: const Color(0xFF65AA4B),
         elevation: 10,
         actions: <Widget>[
+          // Submit button
           IconButton(
             icon: _isLoading
                 ? const CircularProgressIndicator(
@@ -227,6 +276,13 @@ class HomePageState extends State<HomePage> {
                       handleSubmitData();
                     }
                   },
+          ),
+
+          // Logout button
+          IconButton(
+            icon: const Icon(Icons.logout, color: Colors.white),
+            tooltip: 'Logout',
+            onPressed: _logout,
           ),
         ],
       ),

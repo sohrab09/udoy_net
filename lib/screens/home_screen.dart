@@ -8,8 +8,6 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'ping_service.dart';
-// import 'dart:convert';
-// import 'package:udoy_net/screens/error_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -50,7 +48,6 @@ class _HomeScreenState extends State<HomeScreen> {
     await _pingAll();
     await _getPublicIP();
     await _getWifiDetails();
-    // await _verifyIPAddress(_internetPublicIP);
 
     // recall the _pingAll method after 5 seconds
     Timer.periodic(const Duration(seconds: 5), (timer) {
@@ -146,33 +143,6 @@ class _HomeScreenState extends State<HomeScreen> {
       });
     }
   }
-
-  // Future<void> _verifyIPAddress(String ipAddress) async {
-  //   final url = Uri.parse(
-  //       'https://api.udoyadn.com/api/Auth/GetUdoyNetworkStatus?ip=$ipAddress');
-  //   // 'https://api.udoyadn.com/api/Auth/GetUdoyNetworkStatus?ip=202.51.180.246');
-
-  //   try {
-  //     final response = await http.post(
-  //       url,
-  //       headers: {'Content-Type': 'application/json'},
-  //     );
-
-  //     if (response.statusCode == 200) {
-  //       final data = json.decode(response.body);
-  //       if (data == false) {
-  //         Navigator.pushReplacement(
-  //           context,
-  //           MaterialPageRoute(builder: (context) => ErrorScreen()),
-  //         );
-  //       }
-  //     } else {
-  //       print('Request failed with status verify: ${response.statusCode}');
-  //     }
-  //   } catch (e) {
-  //     print('Error in IP verification: $e');
-  //   }
-  // }
 
   Future<void> _pingAll() async {
     try {

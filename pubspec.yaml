@@ -39,6 +39,7 @@ dependencies:
   dart_ping: ^9.0.1
   wifi_scan: ^0.4.1+1
   http: ^1.2.2
+  shared_preferences: ^2.3.5
 
 dev_dependencies:
   flutter_test:

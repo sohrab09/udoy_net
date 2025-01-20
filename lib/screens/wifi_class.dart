@@ -1,4 +1,3 @@
-// wifi_class.dart
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -46,7 +45,8 @@ class WifiClass {
     // Initialize network data variables
     String wifiName = '', wifiIPv4 = '', wifiGatewayIP = '', publicIP = '';
     String linkSpeed = '', signalStrength = '', frequency = '', rssi = '';
-    String gatewayPing = '', internetPing = '';
+    List<String> gatewayPing = [];
+    List<String> internetPing = [];
 
     // Get the wifi name
     wifiName = await getDataFromNetwork(
@@ -97,18 +97,23 @@ class WifiClass {
       developer.log('Failed to get WiFi details', error: e);
     }
 
-    // Ping the gateway and internet
-    gatewayPing = await getDataFromNetwork(
-      () async => await PingService.ping(wifiGatewayIP),
-      'Failed to ping gateway',
-    );
+    // Ping the gateway
+    for (int i = 0; i < 5; i++) {
+      String pingResponse = await getDataFromNetwork(
+        () async => await PingService.ping(wifiGatewayIP),
+        'Failed to ping gateway',
+      );
+      gatewayPing.add(pingResponse);
+    }
 
-    internetPing = await getDataFromNetwork(
-      () async => await PingService.ping('8.8.8.8'),
-      'Failed to ping internet',
-    );
-
-    // Scan for available networks
+    // Ping the internet
+    for (int i = 0; i < 5; i++) {
+      String pingResponse = await getDataFromNetwork(
+        () async => await PingService.ping('8.8.8.8'),
+        'Failed to ping internet',
+      );
+      internetPing.add(pingResponse);
+    }
 
     // Return a populated NetworkData object
     return NetworkData(

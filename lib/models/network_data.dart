@@ -21,8 +21,8 @@ class NetworkData {
   final String signalStrength;
   final String freequency;
   final String rssi;
-  final String gatewayPing;
-  final String internetPing;
+  final List<String> gatewayPing;
+  final List<String> internetPing;
 
   NetworkData({
     required this.wifiName,
