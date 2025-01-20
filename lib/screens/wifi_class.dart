@@ -1,3 +1,4 @@
+// wifi_class.dart
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -6,7 +7,6 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:udoy_net/models/network_data.dart';
 import 'package:http/http.dart' as http;
 import 'ping_service.dart';
-import 'package:wifi_scan/wifi_scan.dart';
 import 'dart:async';
 
 class WifiClass {
@@ -34,6 +34,12 @@ class WifiClass {
     return "N/A";
   }
 
+  // Accept connectedDeviceCount as a parameter
+  void updateConnectedDeviceCount(int connectedDeviceCount) {
+    // Send the data to network_data.dart
+    print("connectedDeviceCount$connectedDeviceCount");
+  }
+
   Future<NetworkData> getNetworkData() async {
     final NetworkInfo networkInfo = NetworkInfo();
 
@@ -41,7 +47,6 @@ class WifiClass {
     String wifiName = '', wifiIPv4 = '', wifiGatewayIP = '', publicIP = '';
     String linkSpeed = '', signalStrength = '', frequency = '', rssi = '';
     String gatewayPing = '', internetPing = '';
-    List<Map<String, dynamic>> availableNetworks = [];
 
     // Get the wifi name
     wifiName = await getDataFromNetwork(
@@ -104,19 +109,6 @@ class WifiClass {
     );
 
     // Scan for available networks
-    if (await WiFiScan.instance.canStartScan() == CanStartScan.yes) {
-      await WiFiScan.instance.startScan();
-      final results = await WiFiScan.instance.getScannedResults();
-      availableNetworks = results
-          .map((network) => {
-                'ssid': network.ssid,
-                'signalStrength': network.level,
-                'frequency': network.frequency,
-              })
-          .toList();
-    } else {
-      developer.log('WiFi scanning is not allowed on this device.');
-    }
 
     // Return a populated NetworkData object
     return NetworkData(
@@ -130,7 +122,6 @@ class WifiClass {
       rssi: rssi,
       gatewayPing: gatewayPing,
       internetPing: internetPing,
-      availableNetworks: availableNetworks,
     );
   }
 }

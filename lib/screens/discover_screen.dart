@@ -56,7 +56,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
 
     for (int i = 1; i <= 254; i++) {
       final ip = '$subnet.$i';
-      final ping = Ping(ip, count: 1, timeout: 1000, interval: 100);
+      final ping = Ping(ip, count: 1, timeout: 500, interval: 10);
 
       pingFutures.add(_pingDevice(ping, ip));
     }

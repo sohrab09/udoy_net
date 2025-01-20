@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:udoy_net/screens/discover_connected_ip.dart';
+import 'package:udoy_net/screens/wifi_available.dart';
 import 'screens/home_screen.dart';
 import 'screens/scan_screen.dart';
 import 'screens/discover_screen.dart';
 import 'screens/login_screen.dart';
 import 'widgets/custom_bottom_navigation_bar.dart';
 import 'package:udoy_net/models/network_data.dart';
-import 'dart:convert';
 import 'screens/wifi_class.dart';
+import 'dart:convert'; // Import for jsonEncode
 
 void main() {
   runApp(const MyApp());
@@ -39,6 +41,7 @@ class HomePage extends StatefulWidget {
 
 class HomePageState extends State<HomePage> {
   int _currentIndex = 0;
+  bool _isLoading = false; // Loading state variable
 
   final List<Widget> _pages = [];
 
@@ -52,14 +55,81 @@ class HomePageState extends State<HomePage> {
     ]);
   }
 
-  void handleSubmitData(String data) async {
+  // Function to handle submission and show loading spinner
+  void handleSubmitData() async {
+    setState(() {
+      _isLoading = true; // Start loading
+    });
+
     WifiClass wifiClass = WifiClass();
+    IPScanner scanner = IPScanner();
+    WifiAvailable wifi = WifiAvailable();
+
     try {
+      // Fetching network data
       NetworkData networkData = await wifiClass.getNetworkData();
-      String jsonData = jsonEncode(networkData.toJson());
-      print('JSON Data: $jsonData');
+
+      // Scanning available networks
+      Map<String, bool> availableNetworks = await scanner.scanNetwork();
+
+      // Fetching connected Wi-Fi list
+      List<Map<String, dynamic>>? connectedList = await wifi.getAvailableWifi();
+
+      // Creating the data model
+      AllNetworkDataModel model = AllNetworkDataModel(
+        customerCode: '123456',
+        networkData: networkData,
+        connectedList: availableNetworks,
+        availableNetworks: connectedList,
+      );
+
+      // Structuring the data as a Map to convert it to JSON
+      Map<String, dynamic> jsonData = {
+        "customerCode": model.customerCode,
+        "networkData": {
+          "wifiName": model.networkData.wifiName,
+          "deviceIP": model.networkData.deviceIP,
+          "gateway": model.networkData.gateway,
+          "publicIP": model.networkData.publicIP,
+          "linkSpeed": model.networkData.linkSpeed,
+          "signalStrength": model.networkData.signalStrength,
+          "frequency": model.networkData.freequency,
+          "rssi": model.networkData.rssi,
+          "gatewayPing": model.networkData.gatewayPing,
+          "internetPing": model.networkData.internetPing,
+        },
+        "availableNetworks": model.availableNetworks,
+        "connectedList": model.connectedList,
+        "connectedListCount": model.connectedList.length,
+      };
+
+      // Convert the data to JSON format
+      String jsonString = jsonEncode(jsonData);
+
+      // Print or use the JSON data
+      print('JSON Data to submit: $jsonString');
+
+      // Show success snackbar
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Data submitted successfully!'),
+          backgroundColor: Colors.green,
+        ),
+      );
     } catch (error) {
       print('Error occurred: $error');
+
+      // Show error snackbar
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Data submission failed!'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false; // End loading
+      });
     }
   }
 
@@ -95,13 +165,18 @@ class HomePageState extends State<HomePage> {
         elevation: 10,
         actions: <Widget>[
           IconButton(
-            icon: const Icon(Icons.send, color: Colors.white, size: 30),
-            tooltip: 'Show Snackbar',
-            onPressed: () {
-              if (mounted) {
-                handleSubmitData('');
-              }
-            },
+            icon: _isLoading
+                ? const CircularProgressIndicator(
+                    color: Colors.white) // Show loading spinner
+                : const Icon(Icons.send, color: Colors.white, size: 30),
+            tooltip: 'Submit Data',
+            onPressed: _isLoading // Disable button if loading
+                ? null
+                : () {
+                    if (mounted) {
+                      handleSubmitData();
+                    }
+                  },
           ),
         ],
       ),
