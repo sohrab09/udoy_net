@@ -150,13 +150,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-
         String authToken = data['token'];
-        String customerID = userId;
-
-        await TokenManager.setToken(authToken);
-        await TokenManager.setCustomerID(customerID);
-
         await handleLogin(userId, password, authToken);
       } else {
         setState(() {
@@ -201,7 +195,35 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       final data = json.decode(response.body);
+      print("Data: $data");
       if (response.statusCode == 200 && data['success'] == true) {
+        String customerCode = data['data']['customerCode'];
+        String customerName = data['data']['customerName'];
+        String distributorName = data['data']['distributorName'];
+        String? resellerName = data['data']['resellerName']; // Nullable field
+        String pppoeUserid = data['data']['pppoeUserid'];
+        String pppoePassword = data['data']['pppoePassword'];
+        String balance =
+            data['data']['balance'].toString(); // Convert int to String
+        String billAmount =
+            data['data']['billAmount'].toString(); // Convert int to String
+        String routerIp = data['data']['routerIp'];
+        String expireDate = data['data']['expireDate'];
+
+        await TokenManager.setToken(authToken);
+
+        await TokenManager.setCustomerCode(customerCode);
+        await TokenManager.setCustomerName(customerName);
+        await TokenManager.setDistributorName(distributorName);
+        await TokenManager.setResellerName(
+            resellerName ?? ''); // Handle null by providing a default value
+        await TokenManager.setPppoeUserid(pppoeUserid);
+        await TokenManager.setPppoePassword(pppoePassword);
+        await TokenManager.setBalance(balance); // balance is now a String
+        await TokenManager.setBillAmount(
+            billAmount); // billAmount is now a String
+        await TokenManager.setRouterIp(routerIp);
+        await TokenManager.setExpireDate(expireDate);
         Navigator.pushReplacementNamed(context, '/home');
       } else {
         setState(() {
@@ -291,7 +313,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           decoration: InputDecoration(
                             filled: true,
                             fillColor: Colors.white,
-                            hintText: "UserID",
+                            hintText: "Enter your User ID",
                             prefixIcon: Icon(Icons.person, color: Colors.green),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10.0),
@@ -300,7 +322,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                           validator: (value) {
                             if (value == null || value.trim().isEmpty) {
-                              return 'UserID is required';
+                              return 'User ID is required';
                             }
                             return null;
                           },
@@ -312,7 +334,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           decoration: InputDecoration(
                             filled: true,
                             fillColor: Colors.white,
-                            hintText: "Password",
+                            hintText: "Enter your Password",
                             prefixIcon: Icon(Icons.lock, color: Colors.green),
                             suffixIcon: IconButton(
                               icon: Icon(

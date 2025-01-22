@@ -5,7 +5,7 @@ import 'package:network_info_plus/network_info_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:udoy_net/models/network_data.dart';
 import 'package:http/http.dart' as http;
-import 'ping_service.dart';
+import '../screens/ping_service.dart';
 import 'dart:async';
 
 class WifiClass {
