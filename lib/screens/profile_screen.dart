@@ -10,16 +10,8 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   String? customerName = '';
-  String? customerID = '';
   String? customerCode = '';
-  String? distributorName = '';
-  String? resellerName = '';
   String? pppoeUserid = '';
-  String? pppoePassword = '';
-  String? balance = '';
-  String? billAmount = '';
-  String? routerIp = '';
-  String? expireDate = '';
 
   @override
   void initState() {
@@ -30,14 +22,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> fetchCustomerInfo() async {
     customerName = await TokenManager.getCustomerName();
     customerCode = await TokenManager.getCustomerCode();
-    distributorName = await TokenManager.getDistributorName();
-    resellerName = await TokenManager.getResellerName();
     pppoeUserid = await TokenManager.getPppoeUserid();
-    pppoePassword = await TokenManager.getPppoePassword();
-    balance = await TokenManager.getBalance();
-    billAmount = await TokenManager.getBillAmount();
-    routerIp = await TokenManager.getRouterIp();
-    expireDate = await TokenManager.getExpireDate();
+
     setState(() {});
   }
 
@@ -53,10 +39,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         padding: const EdgeInsets.all(16.0),
         child: ListView(
           children: [
-            // Profile Picture Section
-
-            const SizedBox(height: 20),
-
             // User Details Section
             _buildProfileText(
                 customerName?.toUpperCase() ?? 'Unknown', 24, FontWeight.bold),
@@ -65,37 +47,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 "Customer Code: ${customerCode ?? 'N/A'}", 16, FontWeight.w400),
             const SizedBox(height: 16),
 
-            // Distributor, Reseller Details
-            _buildProfileText('Distributor: ${distributorName ?? 'N/A'}', 16,
-                FontWeight.w400),
-            const SizedBox(height: 16),
-            _buildProfileText(
-                'Reseller: ${resellerName ?? 'N/A'}', 16, FontWeight.w400),
-            const SizedBox(height: 16),
-
             // PPPoE Details
             _buildProfileText(
                 'PPPoE User ID: ${pppoeUserid ?? 'N/A'}', 16, FontWeight.w400),
             const SizedBox(height: 16),
-            _buildProfileText('PPPoE Password: ${pppoePassword ?? 'N/A'}', 16,
-                FontWeight.w400),
-            const SizedBox(height: 16),
-
-            // Financial Info
-            _buildProfileText(
-                'Balance: ${balance ?? 'N/A'}', 16, FontWeight.w400),
-            const SizedBox(height: 16),
-            _buildProfileText(
-                'Bill Amount: ${billAmount ?? 'N/A'}', 16, FontWeight.w400),
-            const SizedBox(height: 16),
-
-            // Router IP and Expiry Date
-            _buildProfileText(
-                'Router IP: ${routerIp ?? 'N/A'}', 16, FontWeight.w400),
-            const SizedBox(height: 16),
-            _buildProfileText(
-                'Expire Date: ${expireDate ?? 'N/A'}', 16, FontWeight.w400),
-            const SizedBox(height: 20),
           ],
         ),
       ),

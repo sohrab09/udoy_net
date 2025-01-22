@@ -13,18 +13,18 @@ class CustomBottomNavigationBar extends StatelessWidget {
       currentIndex: currentIndex,
       onTap: onTap,
       selectedItemColor: Color(0xFF65AA4B), // Color for the selected icon
-      unselectedItemColor: Colors.grey, // Color for the unselected icons
+      unselectedItemColor: Colors.black, // Color for the unselected icons
       items: const [
         BottomNavigationBarItem(
           icon: Icon(Icons.home),
           label: "Home",
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.qr_code_scanner),
+          icon: Icon(Icons.wifi),
           label: "Scan",
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.explore),
+          icon: Icon(Icons.search),
           label: "Discover",
         ),
       ],

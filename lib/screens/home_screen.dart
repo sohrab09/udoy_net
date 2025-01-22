@@ -18,6 +18,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   static const platform = MethodChannel('com.example.udoy_net/linkSpeed');
+  Timer? _periodicTimer;
 
   String _wifiName = 'Unknown';
   String _deviceIP = 'Unknown';
@@ -49,9 +50,10 @@ class _HomeScreenState extends State<HomeScreen> {
     await _getPublicIP();
     await _getWifiDetails();
 
-    // recall the _pingAll method after 5 seconds
-    Timer.periodic(const Duration(seconds: 5), (timer) {
-      _pingAll();
+    _periodicTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (mounted) {
+        _pingAll();
+      }
     });
 
     setState(() => _isLoading = false);
@@ -148,24 +150,43 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       if (_deviceGateway != "Unknown") {
         final gatewayPing = await PingService.ping(_deviceGateway);
-        setState(() {
-          _gatewayPingResult = gatewayPing.isNotEmpty ? gatewayPing : "N/A";
-        });
+        if (mounted) {
+          // Ensure the widget is still mounted
+          setState(() {
+            _gatewayPingResult = gatewayPing.isNotEmpty ? gatewayPing : "N/A";
+          });
+        }
       } else {
-        setState(() {
-          _gatewayPingResult = "N/A";
-        });
+        if (mounted) {
+          // Ensure the widget is still mounted
+          setState(() {
+            _gatewayPingResult = "N/A";
+          });
+        }
       }
       final internetPing = await PingService.ping("8.8.8.8");
-      setState(() {
-        _internetPingResult = internetPing.isNotEmpty ? internetPing : "N/A";
-      });
+      if (mounted) {
+        // Ensure the widget is still mounted
+        setState(() {
+          _internetPingResult = internetPing.isNotEmpty ? internetPing : "N/A";
+        });
+      }
     } catch (e) {
-      setState(() {
-        _gatewayPingResult = "N/A";
-        _internetPingResult = "N/A";
-      });
+      if (mounted) {
+        // Ensure the widget is still mounted
+        setState(() {
+          _gatewayPingResult = "N/A";
+          _internetPingResult = "N/A";
+        });
+      }
     }
+  }
+
+  @override
+  void dispose() {
+    // Cancel the periodic timer to avoid setState() after dispose
+    _periodicTimer?.cancel();
+    super.dispose();
   }
 
   Widget _buildInfoRow(IconData icon, String label, String value) {

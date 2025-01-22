@@ -40,11 +40,13 @@ class CustomDrawerState extends State<CustomDrawer> {
 
   void _logout() async {
     await TokenManager.logout();
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => LoginScreen()),
-    );
-    setState(() {});
+    if (mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => LoginScreen()),
+      );
+      setState(() {});
+    }
   }
 
   @override

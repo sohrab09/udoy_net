@@ -195,7 +195,7 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       final data = json.decode(response.body);
-      print("Data: $data");
+      // print("Data: $data");
       if (response.statusCode == 200 && data['success'] == true) {
         String customerCode = data['data']['customerCode'];
         String customerName = data['data']['customerName'];
