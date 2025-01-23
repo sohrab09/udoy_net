@@ -22,7 +22,7 @@ class HomePage extends StatefulWidget {
 
 class HomePageState extends State<HomePage> {
   int _currentIndex = 0;
-  bool _isLoading = false; // Loading state variable
+  bool _isLoading = false; // Start with loading as false initially
   String _internetPublicIP = ''; // Store the public IP
   String? customerCode;
   String? token;
@@ -107,8 +107,9 @@ class HomePageState extends State<HomePage> {
   // Function to handle submission and show loading spinner
   Future<void> handleSubmitData() async {
     setState(() {
-      _isLoading = true; // Start loading
+      _isLoading = true; // Start loading when the user clicks the submit button
     });
+
     if (customerCode == null ||
         token == null ||
         customerCode!.isEmpty ||
@@ -119,6 +120,9 @@ class HomePageState extends State<HomePage> {
           backgroundColor: Colors.red,
         ),
       );
+      setState(() {
+        _isLoading = false; // End loading if data is missing
+      });
       return;
     }
 
@@ -159,8 +163,6 @@ class HomePageState extends State<HomePage> {
 
     // Convert the data to JSON format
     String jsonBody = jsonEncode(jsonData);
-
-    // print('JSON Data to submit: $jsonBody');
 
     final url = Uri.parse(
         'https://api.udoyadn.com/api/SelfcareApps/SaveCustomerNetworkData');
@@ -208,7 +210,7 @@ class HomePageState extends State<HomePage> {
       );
     } finally {
       setState(() {
-        _isLoading = false; // End loading
+        _isLoading = false; // End loading once the submission is done
       });
     }
   }

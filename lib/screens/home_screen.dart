@@ -45,10 +45,13 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _initialize() async {
     setState(() => _isLoading = true);
 
-    await _initNetworkInfo();
-    await _pingAll();
-    await _getPublicIP();
-    await _getWifiDetails();
+    // Run tasks in parallel
+    await Future.wait([
+      _initNetworkInfo(),
+      _pingAll(),
+      _getPublicIP(),
+      _getWifiDetails(),
+    ]);
 
     _periodicTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
       if (mounted) {
