@@ -12,6 +12,7 @@ import 'package:udoy_net/widgets/custom_drawer.dart';
 import 'dart:convert';
 import 'package:udoy_net/models/network_data.dart';
 import 'package:udoy_net/utils/TokenManager.dart';
+import 'package:get_ip_address/get_ip_address.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -33,9 +34,7 @@ class HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _pages.addAll([HomeScreen(), ScanScreen(), DiscoverScreen()]);
-
-    // Fetch the public IP when the app starts
-    _getPublicIP();
+    _getPublicIPAddress();
     _verifyIPAddress(_internetPublicIP);
     _fetchCustomerID();
     _fetchToken();
@@ -51,32 +50,19 @@ class HomePageState extends State<HomePage> {
     token = await TokenManager.getToken();
   }
 
-  // Function to fetch the public IP
-  Future<void> _getPublicIP() async {
-    setState(() {
-      _isLoading = true; // Start loading
-    });
+  Future<void> _getPublicIPAddress() async {
     try {
-      final response = await http.get(Uri.parse('https://api.ipify.org/'));
-      if (response.statusCode == 200) {
-        final String ip = response.body;
-        setState(() {
-          _internetPublicIP = ip;
-        });
-        await _verifyIPAddress(ip); // Only verify after setting the IP
-      } else {
-        setState(() {
-          _internetPublicIP = 'Failed to get Public IP';
-        });
+      var ipAddress = IpAddress(type: RequestType.json);
+      dynamic data = await ipAddress.getIpAddress();
+      if (data['ip'] == null) {
+        throw IpAddressException('Failed to get Public IP');
       }
-    } catch (e) {
       setState(() {
-        _internetPublicIP = 'Failed to get Public IP';
+        _internetPublicIP = data['ip'];
       });
-    } finally {
-      setState(() {
-        _isLoading = false; // End loading
-      });
+      await _verifyIPAddress(data['ip']);
+    } on IpAddressException catch (exception) {
+      print(exception.message);
     }
   }
 

@@ -4,9 +4,9 @@ import 'package:flutter/services.dart';
 import 'package:network_info_plus/network_info_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:udoy_net/models/network_data.dart';
-import 'package:http/http.dart' as http;
 import '../screens/ping_service.dart';
 import 'dart:async';
+import 'package:get_ip_address/get_ip_address.dart';
 
 class WifiClass {
   get developer => null;
@@ -79,8 +79,12 @@ class WifiClass {
     // Get the public IP address
     publicIP = await getDataFromNetwork(
       () async {
-        final response = await http.get(Uri.parse('https://api.ipify.org'));
-        return response.body;
+        var ipAddress = IpAddress(type: RequestType.json);
+        dynamic data = await ipAddress.getIpAddress();
+        if (data['ip'] == null) {
+          throw IpAddressException('Failed to get Public IP');
+        }
+        return data['ip'];
       },
       'Failed to get public IP',
     );
