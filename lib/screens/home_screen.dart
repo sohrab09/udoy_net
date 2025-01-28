@@ -1,10 +1,7 @@
 import 'dart:async';
 import 'dart:developer' as developer;
-import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:network_info_plus/network_info_plus.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter/services.dart';
 import 'package:get_ip_address/get_ip_address.dart';
 import 'ping_service.dart';
@@ -18,108 +15,99 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   static const platform = MethodChannel('com.example.udoy_net/linkSpeed');
-  Timer? _periodicTimer;
-
-  String _wifiName = 'Unknown';
-  String _deviceIP = 'Unknown';
-  String _deviceGateway = 'Unknown';
-  String _internetPublicIP = 'Unknown';
-
-  String _gatewayPingResult = "N/A";
-  String _internetPingResult = "N/A";
-
-  String _linkSpeed = 'Unknown';
-  String _signalStrength = 'Unknown';
-  String _frequency = 'Unknown';
-  String _rssi = 'Unknown';
 
   final NetworkInfo _networkInfo = NetworkInfo();
+  Timer? _periodicTimer;
   bool _isLoading = true;
+  String _wifiName = 'N/A';
+  String _deviceIP = 'N/A';
+  String _deviceGateway = 'N/A';
+  String _publicIP = 'N/A';
+  String _linkSpeed = 'N/A';
+  String _signalStrength = 'N/A';
+  String _frequency = 'N/A';
+  String _rssi = 'N/A';
+  String _gatewayPingResult = "N/A";
+  String _internetPingResult = "N/A";
 
   @override
   void initState() {
     super.initState();
-    _initialize();
-  }
-
-  @override
-  void dispose() {
-    // Cancel the periodic timer to avoid setState() after dispose
-    _periodicTimer?.cancel();
-    super.dispose();
-  }
-
-  Future<void> _initialize() async {
-    setState(() => _isLoading = true);
-
-    // Run tasks in parallel
-    await Future.wait([
-      _initNetworkInfo(),
-      _pingAll(),
-      _getPublicIP(),
-      _getWifiDetails(),
-    ]);
+    _getWifiInfo();
+    _getPublicIPAddress();
+    _getWifiDetails();
+    _pingAll();
 
     _periodicTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
       if (mounted) {
         _pingAll();
       }
     });
-
-    setState(() => _isLoading = false);
   }
 
-  Future<void> _initNetworkInfo() async {
-    String? wifiName, wifiIPv4, wifiGatewayIP;
+  @override
+  void dispose() {
+    _periodicTimer?.cancel();
+    super.dispose();
+  }
+
+  // get wifi info
+  Future<void> _getWifiInfo() async {
+    String? wifiName;
+    String? deviceIP;
+    String? deviceGateway;
 
     try {
-      if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
-        if (await Permission.locationWhenInUse.request().isGranted) {
-          wifiName = await _networkInfo.getWifiName();
-        } else {
-          wifiName = 'Unauthorized to get Wifi Name';
-        }
-      } else {
-        wifiName = await _networkInfo.getWifiName();
+      wifiName = await _networkInfo.getWifiName();
+      deviceIP = await _networkInfo.getWifiIP();
+      deviceGateway = await _networkInfo.getWifiGatewayIP();
+    } catch (e) {
+      developer.log('Failed to get network info: $e');
+    }
+
+    if (mounted) {
+      setState(() {
+        _wifiName = wifiName ?? 'N/A';
+        _deviceIP = deviceIP ?? 'N/A';
+        _deviceGateway = deviceGateway ?? 'N/A';
+        _isLoading = false;
+      });
+    }
+  }
+
+  // get public IP
+  Future<void> _getPublicIPAddress() async {
+    try {
+      var ipAddress = IpAddress(type: RequestType.json);
+      dynamic data = await ipAddress.getIpAddress();
+      if (data['ip'] == null) {
+        throw IpAddressException('Failed to get Public IP');
       }
-    } on PlatformException catch (e) {
-      developer.log('Failed to get Wifi Name', error: e);
-      wifiName = 'Failed to get Wifi Name';
+      if (mounted) {
+        setState(() {
+          _publicIP = data['ip'] ?? 'N/A';
+        });
+      }
+    } on IpAddressException catch (exception) {
+      print(exception.message);
     }
-
-    try {
-      wifiIPv4 = await _networkInfo.getWifiIP();
-    } on PlatformException catch (e) {
-      developer.log('Failed to get Wifi IPv4', error: e);
-      wifiIPv4 = 'Failed to get Wifi IPv4';
-    }
-
-    try {
-      wifiGatewayIP = await _networkInfo.getWifiGatewayIP();
-    } on PlatformException catch (e) {
-      developer.log('Failed to get Wifi gateway address', error: e);
-      wifiGatewayIP = 'Failed to get Wifi gateway address';
-    }
-
-    setState(() {
-      _wifiName = wifiName ?? 'Unknown';
-      _deviceIP = wifiIPv4 ?? 'Unknown';
-      _deviceGateway = wifiGatewayIP ?? 'Unknown';
-    });
   }
 
+  // get signal strength
   Future<void> _getWifiDetails() async {
     try {
       final Map wifiDetails =
           await platform.invokeMethod('getWifiDetails') as Map;
 
-      setState(() {
-        _linkSpeed = "${wifiDetails['linkSpeed']} Mbps";
-        _signalStrength =
-            _getSignalStrengthDescription(wifiDetails['signalStrength']);
-        _frequency = "${wifiDetails['frequency']} MHz";
-        _rssi = "${wifiDetails['rssi']} dBm";
-      });
+      if (mounted) {
+        setState(() {
+          _linkSpeed = "${wifiDetails['linkSpeed']} Mbps";
+          _signalStrength =
+              _getSignalStrengthDescription(wifiDetails['signalStrength']);
+          _frequency = "${wifiDetails['frequency']} MHz";
+          _rssi = "${wifiDetails['rssi']} dBm";
+        });
+      }
     } on PlatformException catch (e) {
       developer.log('Failed to get WiFi details', error: e);
       setState(() {
@@ -139,20 +127,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return "N/A";
   }
 
-  Future<void> _getPublicIP() async {
-    try {
-      var ipAddress = IpAddress(type: RequestType.json);
-      dynamic data = await ipAddress.getIpAddress();
-      if (data['ip'] == null) {
-        throw IpAddressException('Failed to get Public IP');
-      }
-      setState(() {
-        _internetPublicIP = data['ip'];
-      });
-    } on IpAddressException catch (exception) {
-      print(exception.message);
-    }
-  }
+  // ping all method
 
   Future<void> _pingAll() async {
     try {
@@ -188,6 +163,17 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       }
     }
+  }
+
+  Future<void> _refreshData() async {
+    setState(() => _isLoading = true);
+
+    await _getWifiInfo();
+    await _getPublicIPAddress();
+    await _getWifiDetails();
+    await _pingAll();
+
+    setState(() => _isLoading = false);
   }
 
   Widget _buildInfoRow(IconData icon, String label, String value) {
@@ -242,16 +228,16 @@ class _HomeScreenState extends State<HomeScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
-              onRefresh: _initialize,
+              onRefresh: _refreshData,
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
                     children: [
-                      _buildInfoCard(),
+                      _wifiInfoCard(),
                       const SizedBox(height: 20),
-                      _buildPingCard(),
+                      _pingInfoCard(),
                     ],
                   ),
                 ),
@@ -260,7 +246,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildInfoCard() {
+  Widget _wifiInfoCard() {
     return Card(
       elevation: 5,
       shape: RoundedRectangleBorder(
@@ -287,7 +273,7 @@ class _HomeScreenState extends State<HomeScreen> {
             const Divider(),
             _buildInfoRow(Icons.router, 'Gateway', _deviceGateway),
             const Divider(),
-            _buildInfoRow(Icons.public, 'Public IP', _internetPublicIP),
+            _buildInfoRow(Icons.public, 'Public IP', _publicIP),
             const Divider(),
             _buildInfoRow(Icons.speed, 'Link Speed', _linkSpeed),
             const Divider(),
@@ -303,7 +289,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildPingCard() {
+  Widget _pingInfoCard() {
     return Card(
       elevation: 5,
       shape: RoundedRectangleBorder(
