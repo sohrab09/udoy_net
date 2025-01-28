@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:network_info_plus/network_info_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter/services.dart';
-import 'package:http/http.dart' as http;
+import 'package:get_ip_address/get_ip_address.dart';
 import 'ping_service.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -40,6 +40,13 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _initialize();
+  }
+
+  @override
+  void dispose() {
+    // Cancel the periodic timer to avoid setState() after dispose
+    _periodicTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _initialize() async {
@@ -134,18 +141,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _getPublicIP() async {
     try {
-      final response = await http.get(Uri.parse('https://api.ipify.org/'));
-      if (response.statusCode == 200) {
-        final String ip = response.body;
-        // await _verifyIPAddress(ip);
-        setState(() {
-          _internetPublicIP = ip;
-        });
+      var ipAddress = IpAddress(type: RequestType.json);
+      dynamic data = await ipAddress.getIpAddress();
+      if (data['ip'] == null) {
+        throw IpAddressException('Failed to get Public IP');
       }
-    } catch (e) {
       setState(() {
-        _internetPublicIP = 'Failed to get Public IP';
+        _internetPublicIP = data['ip'];
       });
+    } on IpAddressException catch (exception) {
+      print(exception.message);
     }
   }
 
@@ -183,13 +188,6 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       }
     }
-  }
-
-  @override
-  void dispose() {
-    // Cancel the periodic timer to avoid setState() after dispose
-    _periodicTimer?.cancel();
-    super.dispose();
   }
 
   Widget _buildInfoRow(IconData icon, String label, String value) {

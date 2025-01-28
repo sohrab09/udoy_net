@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:udoy_net/screens/error_screen.dart';
 import 'package:udoy_net/utils/TokenManager.dart';
+import 'package:get_ip_address/get_ip_address.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -18,7 +19,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController(text: '');
   bool _obscurePassword = true;
   bool isLoading = false; // Track loading state
-  String ipAddress = '';
+  String publicIpAddress = '';
   Timer? _timer;
 
   String date = '';
@@ -28,7 +29,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
-    getIPAddress();
+    getPublicIPAddress();
     getDatTime();
 
     _timer = Timer.periodic(Duration(hours: 1), (timer) {
@@ -42,21 +43,19 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  Future<void> getIPAddress() async {
-    final url = Uri.parse('https://api.ipify.org');
+  Future<void> getPublicIPAddress() async {
     try {
-      final response = await http.get(url);
-      if (response.statusCode == 200) {
-        final data = response.body.trim();
-        await verifyIPAddress(data);
-        setState(() {
-          ipAddress = data;
-        });
-      } else {
-        print('Request failed with status code: ${response.statusCode}');
+      var ipAddress = IpAddress(type: RequestType.json);
+      dynamic data = await ipAddress.getIpAddress();
+      if (data['ip'] == null) {
+        throw IpAddressException('Failed to get Public IP');
       }
-    } catch (e) {
-      print('Error: $e');
+      setState(() {
+        publicIpAddress = data['ip'];
+      });
+      await verifyIPAddress(data['ip']);
+    } on IpAddressException catch (exception) {
+      print(exception.message);
     }
   }
 
