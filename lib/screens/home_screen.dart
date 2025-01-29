@@ -129,38 +129,30 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // ping all method
 
+  void _updatePingResults(String gatewayPing, String internetPing) {
+    setState(() {
+      _gatewayPingResult = gatewayPing.isNotEmpty ? gatewayPing : "N/A";
+      _internetPingResult = internetPing.isNotEmpty ? internetPing : "N/A";
+    });
+  }
+
   Future<void> _pingAll() async {
     try {
+      String gatewayPing = "N/A";
+      String internetPing = "N/A";
+
       if (_deviceGateway != "Unknown") {
-        final gatewayPing = await PingService.ping(_deviceGateway);
-        if (mounted) {
-          // Ensure the widget is still mounted
-          setState(() {
-            _gatewayPingResult = gatewayPing.isNotEmpty ? gatewayPing : "N/A";
-          });
-        }
-      } else {
-        if (mounted) {
-          // Ensure the widget is still mounted
-          setState(() {
-            _gatewayPingResult = "N/A";
-          });
-        }
+        gatewayPing = await PingService.ping(_deviceGateway);
       }
-      final internetPing = await PingService.ping("8.8.8.8");
+
+      internetPing = await PingService.ping("8.8.8.8");
+
       if (mounted) {
-        // Ensure the widget is still mounted
-        setState(() {
-          _internetPingResult = internetPing.isNotEmpty ? internetPing : "N/A";
-        });
+        _updatePingResults(gatewayPing, internetPing);
       }
     } catch (e) {
       if (mounted) {
-        // Ensure the widget is still mounted
-        setState(() {
-          _gatewayPingResult = "N/A";
-          _internetPingResult = "N/A";
-        });
+        _updatePingResults("N/A", "N/A");
       }
     }
   }
@@ -174,52 +166,6 @@ class _HomeScreenState extends State<HomeScreen> {
     await _pingAll();
 
     setState(() => _isLoading = false);
-  }
-
-  Widget _buildInfoRow(IconData icon, String label, String value) {
-    Color signalStrengthColor = Colors.black87; // Default color
-
-    // Add the signal strength color logic
-    if (value == "Very Weak") {
-      signalStrengthColor = Color(0xFFD60200); // Red for very weak signal
-    } else if (value == "Poor") {
-      signalStrengthColor = Color(0xFF015B71); // Blue for poor signal
-    } else if (value == "Good") {
-      signalStrengthColor = Color(0xFF4B4B91); // Purple for good signal
-    } else if (value == "Excellent") {
-      signalStrengthColor = Color(0xFF599E41); // Green for excellent signal
-    }
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: 30, color: Colors.blueAccent),
-              const SizedBox(width: 16),
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
-              ),
-            ],
-          ),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: signalStrengthColor, // Apply the dynamic color here
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   @override
@@ -316,6 +262,52 @@ class _HomeScreenState extends State<HomeScreen> {
                 Icons.public, 'Internet: 8.8.8.8', _internetPingResult),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String label, String result) {
+    Color signalStrengthColor = Colors.black87; // Default color
+
+    // Add the signal strength color logic
+    if (result == "Very Weak") {
+      signalStrengthColor = Color(0xFFD60200); // Red for very weak signal
+    } else if (result == "Poor") {
+      signalStrengthColor = Color(0xFF015B71); // Blue for poor signal
+    } else if (result == "Good") {
+      signalStrengthColor = Color(0xFF4B4B91); // Purple for good signal
+    } else if (result == "Excellent") {
+      signalStrengthColor = Color(0xFF599E41); // Green for excellent signal
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 30, color: Colors.blueAccent),
+              const SizedBox(width: 16),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
+          ),
+          Text(
+            result,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: signalStrengthColor, // Apply the dynamic color here
+            ),
+          ),
+        ],
       ),
     );
   }
