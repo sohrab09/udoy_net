@@ -5,6 +5,7 @@ import 'package:network_info_plus/network_info_plus.dart';
 import 'package:flutter/services.dart';
 import 'package:get_ip_address/get_ip_address.dart';
 import 'ping_service.dart';
+import 'package:fl_chart/fl_chart.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -29,6 +30,12 @@ class _HomeScreenState extends State<HomeScreen> {
   String _rssi = 'N/A';
   String _gatewayPingResult = "N/A";
   String _internetPingResult = "N/A";
+
+  double _gatewayPingMs = -1.0;
+  double _internetPingMs = -1.0;
+
+  List<FlSpot> gatewayPingData = [];
+  List<FlSpot> internetPingData = [];
 
   @override
   void initState() {
@@ -129,32 +136,61 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // ping all method
 
-  void _updatePingResults(String gatewayPing, String internetPing) {
+  // Your existing method
+  void _updatePingResults(int gatewayPingMs, int internetPingMs) {
     setState(() {
-      _gatewayPingResult = gatewayPing.isNotEmpty ? gatewayPing : "N/A";
-      _internetPingResult = internetPing.isNotEmpty ? internetPing : "N/A";
+      _gatewayPingResult = gatewayPingMs != -1 ? "$gatewayPingMs ms" : "N/A";
+      _internetPingResult = internetPingMs != -1 ? "$internetPingMs ms" : "N/A";
+      _gatewayPingMs = gatewayPingMs.toDouble(); // Update this to double
+      _internetPingMs = internetPingMs.toDouble(); // Update this to double
+
+      // Add new data to the lists
+      if (gatewayPingData.length > 10)
+        gatewayPingData.removeAt(0); // Keep last 5 data points
+      if (internetPingData.length > 10)
+        internetPingData.removeAt(0); // Keep last 5 data points
+      gatewayPingData.add(FlSpot(
+          DateTime.now().millisecondsSinceEpoch.toDouble(), _gatewayPingMs));
+      internetPingData.add(FlSpot(
+          DateTime.now().millisecondsSinceEpoch.toDouble(), _internetPingMs));
     });
   }
 
   Future<void> _pingAll() async {
     try {
-      String gatewayPing = "N/A";
-      String internetPing = "N/A";
+      int gatewayPingInt = -1;
+      int internetPingInt = -1;
 
+      // Ping the gateway
       if (_deviceGateway != "Unknown") {
-        gatewayPing = await PingService.ping(_deviceGateway);
+        String gatewayPing = await PingService.ping(_deviceGateway);
+        // Extract numeric value and convert it to an integer
+        gatewayPingInt = _parsePingToInt(gatewayPing);
       }
 
-      internetPing = await PingService.ping("8.8.8.8");
+      // Ping the internet
+      String internetPing = await PingService.ping("8.8.8.8");
+      // Extract numeric value and convert it to an integer
+      internetPingInt = _parsePingToInt(internetPing);
 
       if (mounted) {
-        _updatePingResults(gatewayPing, internetPing);
+        _updatePingResults(gatewayPingInt, internetPingInt);
       }
     } catch (e) {
       if (mounted) {
-        _updatePingResults("N/A", "N/A");
+        _updatePingResults(-1, -1); // In case of error, set ping results to -1
       }
     }
+  }
+
+  int _parsePingToInt(String pingResult) {
+    final regex = RegExp(r'(\d+)'); // Match only digits
+    final match = regex.firstMatch(pingResult);
+    if (match != null) {
+      return int.tryParse(match.group(0) ?? '') ??
+          0; // Parse and return integer
+    }
+    return 0; // Return 0 if parsing fails
   }
 
   Future<void> _refreshData() async {
@@ -184,6 +220,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       _wifiInfoCard(),
                       const SizedBox(height: 20),
                       _pingInfoCard(),
+                      const SizedBox(height: 20),
                     ],
                   ),
                 ),

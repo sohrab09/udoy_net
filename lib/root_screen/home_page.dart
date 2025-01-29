@@ -230,23 +230,6 @@ class HomePageState extends State<HomePage> {
         backgroundColor: const Color(0xFF65AA4B),
         iconTheme: const IconThemeData(color: Colors.white),
         elevation: 10,
-        actions: <Widget>[
-          // Submit button
-          IconButton(
-            icon: _isLoading
-                ? const CircularProgressIndicator(
-                    color: Colors.white) // Show loading spinner
-                : const Icon(Icons.send, color: Colors.white, size: 30),
-            tooltip: 'Submit Data',
-            onPressed: _isLoading // Disable button if loading
-                ? null
-                : () {
-                    if (mounted) {
-                      handleSubmitData();
-                    }
-                  },
-          ),
-        ],
       ),
       body: Column(
         children: [
@@ -269,6 +252,19 @@ class HomePageState extends State<HomePage> {
         },
       ),
       drawer: CustomDrawer(),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          _isLoading ? null : handleSubmitData();
+        },
+        backgroundColor: Colors.green,
+        child: _isLoading
+            ? const CircularProgressIndicator(color: Colors.white)
+            : const Icon(
+                Icons.send,
+                color: Colors.white,
+                size: 30,
+              ),
+      ),
     );
   }
 }
