@@ -224,12 +224,23 @@ class _LoginScreenState extends State<LoginScreen> {
         await TokenManager.setRouterIp(routerIp);
         await TokenManager.setExpireDate(expireDate);
         Navigator.pushReplacementNamed(context, '/home');
+      } else if (response.statusCode == 200 && data['success'] == false) {
+        setState(() {
+          isLoading = false; // Show the button again if login fails
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text(
+                  'Login Failed: ${data['errorMessage'] ?? 'An error occurred'}')),
+        );
       } else {
         setState(() {
           isLoading = false; // Show the button again if login fails
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Login Failed')),
+          SnackBar(
+              content: Text(
+                  'Login Failed: ${data['errorMessage'] ?? 'An error occurred'}')),
         );
       }
     } catch (e) {

@@ -89,7 +89,8 @@ class ApiClient {
   Future<void> _refreshToken() async {
     // Call your API to refresh the token
     final userId = await TokenManager.getCustomerCode();
-    final password = await getDateTime();
+    await getDateTime(); // Ensure date and time are updated
+    final password = '$date$time'; // Use the updated date and time
 
     final data = {
       'userID': 'CUS$userId',

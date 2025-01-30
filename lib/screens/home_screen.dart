@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:network_info_plus/network_info_plus.dart';
 import 'package:flutter/services.dart';
 import 'package:get_ip_address/get_ip_address.dart';
+import 'package:udoy_net/components/ping_chart.dart';
 import 'ping_service.dart';
 import 'package:fl_chart/fl_chart.dart';
 
@@ -34,14 +35,21 @@ class _HomeScreenState extends State<HomeScreen> {
   double _gatewayPingMs = -1.0;
   double _internetPingMs = -1.0;
 
-  List<FlSpot> gatewayPingData = [];
-  List<FlSpot> internetPingData = [];
+  List<FlSpot> gatewayPingData = [FlSpot(0, 0)];
+  List<FlSpot> internetPingData = [FlSpot(0, 0)];
+
+  String _gatewayPingLabel = 'Gateway Ping';
+  String _internetPingLabel = 'Internet Ping';
 
   @override
   void initState() {
     super.initState();
+    _initializeData();
+  }
+
+  void _initializeData() {
+    _getPublicIPAddress(); // Fetch public IP first
     _getWifiInfo();
-    _getPublicIPAddress();
     _getWifiDetails();
     _pingAll();
 
@@ -60,31 +68,28 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // get wifi info
   Future<void> _getWifiInfo() async {
-    String? wifiName;
-    String? deviceIP;
-    String? deviceGateway;
-
     try {
-      wifiName = await _networkInfo.getWifiName();
-      deviceIP = await _networkInfo.getWifiIP();
-      deviceGateway = await _networkInfo.getWifiGatewayIP();
-    } catch (e) {
-      developer.log('Failed to get network info: $e');
-    }
+      String? wifiName = await _networkInfo.getWifiName();
+      String? deviceIP = await _networkInfo.getWifiIP();
+      String? deviceGateway = await _networkInfo.getWifiGatewayIP();
 
-    if (mounted) {
-      setState(() {
-        _wifiName = wifiName ?? 'N/A';
-        _deviceIP = deviceIP ?? 'N/A';
-        _deviceGateway = deviceGateway ?? 'N/A';
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _wifiName = wifiName ?? 'N/A';
+          _deviceIP = deviceIP ?? 'N/A';
+          _deviceGateway = deviceGateway ?? 'N/A';
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      _handleError('Failed to get network info', e);
     }
   }
 
   // get public IP
   Future<void> _getPublicIPAddress() async {
     try {
+      developer.log('Fetching public IP address...');
       var ipAddress = IpAddress(type: RequestType.json);
       dynamic data = await ipAddress.getIpAddress();
       if (data['ip'] == null) {
@@ -95,8 +100,9 @@ class _HomeScreenState extends State<HomeScreen> {
           _publicIP = data['ip'] ?? 'N/A';
         });
       }
+      developer.log('Public IP address fetched: $_publicIP');
     } on IpAddressException catch (exception) {
-      print(exception.message);
+      _handleError(exception.message, exception);
     }
   }
 
@@ -116,7 +122,7 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       }
     } on PlatformException catch (e) {
-      developer.log('Failed to get WiFi details', error: e);
+      _handleError('Failed to get WiFi details', e);
       setState(() {
         _linkSpeed = 'Error';
         _signalStrength = 'Error';
@@ -135,27 +141,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // ping all method
-
-  // Your existing method
-  void _updatePingResults(int gatewayPingMs, int internetPingMs) {
-    setState(() {
-      _gatewayPingResult = gatewayPingMs != -1 ? "$gatewayPingMs ms" : "N/A";
-      _internetPingResult = internetPingMs != -1 ? "$internetPingMs ms" : "N/A";
-      _gatewayPingMs = gatewayPingMs.toDouble(); // Update this to double
-      _internetPingMs = internetPingMs.toDouble(); // Update this to double
-
-      // Add new data to the lists
-      if (gatewayPingData.length > 10)
-        gatewayPingData.removeAt(0); // Keep last 5 data points
-      if (internetPingData.length > 10)
-        internetPingData.removeAt(0); // Keep last 5 data points
-      gatewayPingData.add(FlSpot(
-          DateTime.now().millisecondsSinceEpoch.toDouble(), _gatewayPingMs));
-      internetPingData.add(FlSpot(
-          DateTime.now().millisecondsSinceEpoch.toDouble(), _internetPingMs));
-    });
-  }
-
   Future<void> _pingAll() async {
     try {
       int gatewayPingInt = -1;
@@ -183,6 +168,27 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  void _updatePingResults(int gatewayPingMs, int internetPingMs) {
+    setState(() {
+      _gatewayPingResult = gatewayPingMs != -1 ? "$gatewayPingMs ms" : "N/A";
+      _internetPingResult = internetPingMs != -1 ? "$internetPingMs ms" : "N/A";
+      _gatewayPingMs = gatewayPingMs.toDouble(); // Update this to double
+      _internetPingMs = internetPingMs.toDouble(); // Update this to double
+
+      // Add new data to the lists
+      if (gatewayPingData.length > 5) {
+        gatewayPingData.removeAt(0); // Keep last 5 data points
+      }
+      if (internetPingData.length > 5) {
+        internetPingData.removeAt(0); // Keep last 5 data points
+      }
+      gatewayPingData.add(FlSpot(
+          DateTime.now().millisecondsSinceEpoch.toDouble(), _gatewayPingMs));
+      internetPingData.add(FlSpot(
+          DateTime.now().millisecondsSinceEpoch.toDouble(), _internetPingMs));
+    });
+  }
+
   int _parsePingToInt(String pingResult) {
     final regex = RegExp(r'(\d+)'); // Match only digits
     final match = regex.firstMatch(pingResult);
@@ -204,6 +210,14 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() => _isLoading = false);
   }
 
+  bool _isPingDataAvailable() {
+    return _gatewayPingResult != "N/A" && _internetPingResult != "N/A";
+  }
+
+  void _handleError(String message, dynamic error) {
+    developer.log(message, error: error);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -221,6 +235,13 @@ class _HomeScreenState extends State<HomeScreen> {
                       const SizedBox(height: 20),
                       _pingInfoCard(),
                       const SizedBox(height: 20),
+                      _isPingDataAvailable()
+                          ? PingChart(
+                              gatewayPingData: gatewayPingData,
+                              internetPingData: internetPingData,
+                              gatewayPingLabel: _gatewayPingLabel,
+                              internetPingLabel: _internetPingLabel)
+                          : Container(), // Conditionally render the chart
                     ],
                   ),
                 ),
@@ -230,49 +251,42 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _wifiInfoCard() {
-    return Card(
-      elevation: 5,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15),
-      ),
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Wi-Fi Network Details',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blueAccent,
-                  ),
-            ),
-            const SizedBox(height: 8),
-            _buildInfoRow(Icons.wifi, 'Wi-Fi Name', _wifiName),
-            const Divider(),
-            _buildInfoRow(
-                Icons.perm_device_information, 'Device IP', _deviceIP),
-            const Divider(),
-            _buildInfoRow(Icons.router, 'Gateway', _deviceGateway),
-            const Divider(),
-            _buildInfoRow(Icons.public, 'Public IP', _publicIP),
-            const Divider(),
-            _buildInfoRow(Icons.speed, 'Link Speed', _linkSpeed),
-            const Divider(),
-            _buildInfoRow(
-                Icons.signal_wifi_4_bar, 'Signal Strength', _signalStrength),
-            const Divider(),
-            _buildInfoRow(Icons.network_wifi, 'Frequency', _frequency),
-            const Divider(),
-            _buildInfoRow(Icons.network_cell, 'RSSI', _rssi),
-          ],
-        ),
-      ),
+    return _buildCard(
+      title: 'Wi-Fi Network Details',
+      children: [
+        _buildInfoRow(Icons.wifi, 'Wi-Fi Name', _wifiName),
+        const Divider(),
+        _buildInfoRow(Icons.perm_device_information, 'Device IP', _deviceIP),
+        const Divider(),
+        _buildInfoRow(Icons.router, 'Gateway', _deviceGateway),
+        const Divider(),
+        _buildInfoRow(Icons.public, 'Public IP', _publicIP),
+        const Divider(),
+        _buildInfoRow(Icons.speed, 'Link Speed', _linkSpeed),
+        const Divider(),
+        _buildInfoRow(
+            Icons.signal_wifi_4_bar, 'Signal Strength', _signalStrength),
+        const Divider(),
+        _buildInfoRow(Icons.network_wifi, 'Frequency', _frequency),
+        const Divider(),
+        _buildInfoRow(Icons.network_cell, 'RSSI', _rssi),
+      ],
     );
   }
 
   Widget _pingInfoCard() {
+    return _buildCard(
+      title: 'Ping Results',
+      children: [
+        _buildPingRow(
+            Icons.router, 'Gateway: $_deviceGateway', _gatewayPingResult),
+        const Divider(),
+        _buildPingRow(Icons.public, 'Internet: 8.8.8.8', _internetPingResult),
+      ],
+    );
+  }
+
+  Widget _buildCard({required String title, required List<Widget> children}) {
     return Card(
       elevation: 5,
       shape: RoundedRectangleBorder(
@@ -285,18 +299,14 @@ class _HomeScreenState extends State<HomeScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Ping Results',
+              title,
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: Colors.blueAccent,
                   ),
             ),
             const SizedBox(height: 8),
-            _buildPingRow(
-                Icons.router, 'Gateway: $_deviceGateway', _gatewayPingResult),
-            const Divider(),
-            _buildPingRow(
-                Icons.public, 'Internet: 8.8.8.8', _internetPingResult),
+            ...children,
           ],
         ),
       ),
