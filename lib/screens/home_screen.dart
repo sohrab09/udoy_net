@@ -38,8 +38,8 @@ class _HomeScreenState extends State<HomeScreen> {
   List<FlSpot> gatewayPingData = [FlSpot(0, 0)];
   List<FlSpot> internetPingData = [FlSpot(0, 0)];
 
-  String _gatewayPingLabel = 'Gateway Ping';
-  String _internetPingLabel = 'Internet Ping';
+  final String _gatewayPingLabel = 'Gateway Ping';
+  final String _internetPingLabel = 'Internet Ping';
 
   @override
   void initState() {

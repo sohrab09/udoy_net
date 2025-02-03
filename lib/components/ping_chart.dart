@@ -8,12 +8,12 @@ class PingChart extends StatelessWidget {
   final String internetPingLabel;
 
   const PingChart({
-    Key? key,
+    super.key,
     required this.gatewayPingData,
     required this.internetPingData,
     required this.gatewayPingLabel,
     required this.internetPingLabel,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
