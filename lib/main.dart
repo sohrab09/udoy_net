@@ -87,7 +87,6 @@ class _MyAppState extends State<MyApp> {
       for (var result in results) {
         if (result == ConnectivityResult.mobile) {
           print("Connected to Mobile $results");
-          _showNoWifiDialog();
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (context) => NoWiFiPage()),
@@ -98,27 +97,6 @@ class _MyAppState extends State<MyApp> {
         }
       }
     });
-  }
-
-  void _showNoWifiDialog() {
-    showDialog(
-      context: navigatorKey.currentContext!,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('No Wi-Fi Connection'),
-          content: Text(
-              'You are not connected to Wi-Fi. Please check your connection.'),
-          actions: <Widget>[
-            TextButton(
-              child: Text('OK'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
-      },
-    );
   }
 
   @override

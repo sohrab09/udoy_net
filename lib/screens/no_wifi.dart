@@ -8,6 +8,8 @@ class NoWiFiPage extends StatelessWidget {
       appBar: AppBar(
         title: Text("No WiFi Connection"),
         centerTitle: true,
+        automaticallyImplyLeading:
+            false, // Add this line to remove the back button
       ),
       body: Center(
         child: Column(

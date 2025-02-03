@@ -31,10 +31,11 @@ class HomePageState extends State<HomePage> {
   late StreamSubscription<List<ConnectivityResult>> _connectivitySubscription;
 
   int _currentIndex = 0;
-  bool _isLoading = true; // Start with loading as true initially
+  bool _isLoading = false; // Start with loading as false initially
   String _internetPublicIP = ''; // Store the public IP
   String? customerCode;
   String? token;
+  bool _isSubmitting = false; // Add a new state variable to track submission
 
   final List<Widget> _pages = [];
 
@@ -42,27 +43,12 @@ class HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _pages.addAll([HomeScreen(), ScanScreen(), DiscoverScreen()]);
-    _initializeDataAsync();
+    _getPublicIPAddress();
+    _verifyIPAddress(_internetPublicIP);
+    _fetchCustomerID();
+    _fetchToken();
     _connectivitySubscription =
         _connectivity.onConnectivityChanged.listen(_handleConnectivityChange);
-  }
-
-  void _initializeDataAsync() {
-    Future.microtask(() async {
-      await _initializeData();
-    });
-  }
-
-  Future<void> _initializeData() async {
-    await _getPublicIPAddress();
-    await _verifyIPAddress(_internetPublicIP);
-    await _fetchCustomerID();
-    await _fetchToken();
-    if (mounted) {
-      setState(() {
-        _isLoading = false; // End loading once all initial data is fetched
-      });
-    }
   }
 
   void dispose() {
@@ -75,7 +61,6 @@ class HomePageState extends State<HomePage> {
       for (var result in results) {
         if (result == ConnectivityResult.mobile) {
           print("Connected to Mobile $results");
-          _showNoWifiDialog();
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (context) => NoWiFiPage()),
@@ -86,28 +71,6 @@ class HomePageState extends State<HomePage> {
         }
       }
     });
-  }
-
-  void _showNoWifiDialog() {
-    if (navigatorKey.currentContext == null) return; // Add null check
-    showDialog(
-      context: navigatorKey.currentContext!,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('No Wi-Fi Connection'),
-          content: Text(
-              'You are not connected to Wi-Fi. Please check your connection.'),
-          actions: <Widget>[
-            TextButton(
-              child: Text('OK'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
-      },
-    );
   }
 
   // fetch the customer ID
@@ -132,6 +95,7 @@ class HomePageState extends State<HomePage> {
           _internetPublicIP = data['ip'];
         });
       }
+      await _verifyIPAddress(data['ip']);
     } on IpAddressException catch (exception) {
       print(exception.message);
     }
@@ -168,6 +132,7 @@ class HomePageState extends State<HomePage> {
       setState(() {
         _isLoading =
             true; // Start loading when the user clicks the submit button
+        _isSubmitting = true; // Disable screen navigation
       });
     }
 
@@ -184,6 +149,7 @@ class HomePageState extends State<HomePage> {
       if (mounted) {
         setState(() {
           _isLoading = false; // End loading if data is missing
+          _isSubmitting = false; // Enable screen navigation
         });
       }
       return;
@@ -275,6 +241,7 @@ class HomePageState extends State<HomePage> {
       if (mounted) {
         setState(() {
           _isLoading = false; // End loading once the submission is done
+          _isSubmitting = false; // Enable screen navigation
         });
       }
     }
@@ -318,40 +285,36 @@ class HomePageState extends State<HomePage> {
             ],
           ),
           if (_isLoading)
-            Container(
-              color: Colors.black.withOpacity(0.5),
-              child: const Center(
-                child: CircularProgressIndicator(),
-              ),
+            const Center(
+              child: CircularProgressIndicator(),
             ),
         ],
       ),
       bottomNavigationBar: CustomBottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) {
-          if (!_isLoading && mounted) {
-            // Disable navigation if loading
+          if (!_isSubmitting && mounted) {
             setState(() {
               _currentIndex = index;
             });
           }
         },
       ),
-      drawer: CustomDrawer(),
-      floatingActionButton: _isLoading
+      drawer: _isSubmitting ? null : CustomDrawer(),
+      floatingActionButton: _isSubmitting
           ? null
           : FloatingActionButton(
               onPressed: () {
-                if (!_isLoading) {
-                  handleSubmitData();
-                }
+                _isLoading ? null : handleSubmitData();
               },
               backgroundColor: Colors.green,
-              child: const Icon(
-                Icons.send,
-                color: Colors.white,
-                size: 30,
-              ),
+              child: _isLoading
+                  ? const CircularProgressIndicator(color: Colors.white)
+                  : const Icon(
+                      Icons.send,
+                      color: Colors.white,
+                      size: 30,
+                    ),
             ),
     );
   }
