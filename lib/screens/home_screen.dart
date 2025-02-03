@@ -20,7 +20,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final NetworkInfo _networkInfo = NetworkInfo();
   Timer? _periodicTimer;
-  bool _isLoading = true;
   String _wifiName = 'N/A';
   String _deviceIP = 'N/A';
   String _deviceGateway = 'N/A';
@@ -47,7 +46,8 @@ class _HomeScreenState extends State<HomeScreen> {
     _initializeData();
   }
 
-  void _initializeData() {
+  void _initializeData() async {
+    await Future.delayed(const Duration(seconds: 5)); // Add delay here
     _getPublicIPAddress(); // Fetch public IP first
     _getWifiInfo();
     _getWifiDetails();
@@ -78,7 +78,6 @@ class _HomeScreenState extends State<HomeScreen> {
           _wifiName = wifiName ?? 'N/A';
           _deviceIP = deviceIP ?? 'N/A';
           _deviceGateway = deviceGateway ?? 'N/A';
-          _isLoading = false;
         });
       }
     } catch (e) {
@@ -200,14 +199,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _refreshData() async {
-    setState(() => _isLoading = true);
-
+    await Future.delayed(const Duration(seconds: 5)); // Add delay here
     await _getWifiInfo();
     await _getPublicIPAddress();
     await _getWifiDetails();
     await _pingAll();
-
-    setState(() => _isLoading = false);
   }
 
   bool _isPingDataAvailable() {
@@ -221,32 +217,30 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _refreshData,
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    children: [
-                      _wifiInfoCard(),
-                      const SizedBox(height: 20),
-                      _pingInfoCard(),
-                      const SizedBox(height: 20),
-                      _isPingDataAvailable()
-                          ? PingChart(
-                              gatewayPingData: gatewayPingData,
-                              internetPingData: internetPingData,
-                              gatewayPingLabel: _gatewayPingLabel,
-                              internetPingLabel: _internetPingLabel)
-                          : Container(), // Conditionally render the chart
-                    ],
-                  ),
-                ),
-              ),
+      body: RefreshIndicator(
+        onRefresh: _refreshData,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              children: [
+                _wifiInfoCard(),
+                const SizedBox(height: 10),
+                _pingInfoCard(),
+                const SizedBox(height: 10),
+                _isPingDataAvailable()
+                    ? PingChart(
+                        gatewayPingData: gatewayPingData,
+                        internetPingData: internetPingData,
+                        gatewayPingLabel: _gatewayPingLabel,
+                        internetPingLabel: _internetPingLabel)
+                    : Container(), // Conditionally render the chart
+              ],
             ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -292,7 +286,7 @@ class _HomeScreenState extends State<HomeScreen> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(15),
       ),
-      margin: const EdgeInsets.symmetric(vertical: 8),
+      margin: const EdgeInsets.symmetric(vertical: 0),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(

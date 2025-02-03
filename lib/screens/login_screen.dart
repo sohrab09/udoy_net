@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:udoy_net/screens/error_screen.dart';
 import 'package:udoy_net/utils/TokenManager.dart';
 import 'package:get_ip_address/get_ip_address.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -34,6 +35,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
     _timer = Timer.periodic(Duration(hours: 1), (timer) {
       getDatTime();
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkMobileDataConnection();
     });
   }
 
@@ -248,6 +253,16 @@ class _LoginScreenState extends State<LoginScreen> {
         isLoading = false; // Show the button again if error occurs
       });
       print('Error: $e');
+    }
+  }
+
+  Future<void> _checkMobileDataConnection() async {
+    var connectivityResult = await (Connectivity().checkConnectivity());
+    if (connectivityResult == ConnectivityResult.mobile) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const ErrorScreen()),
+      );
     }
   }
 
