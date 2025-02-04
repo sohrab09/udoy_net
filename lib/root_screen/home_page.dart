@@ -164,7 +164,7 @@ class HomePageState extends State<HomePage> {
         setState(() {
           _isLoading = false; // End loading if data is missing
           _isSubmitting = false; // Enable screen navigation
-          _isSubmitting = false;
+          _isAutoRefresh = false;
         });
       }
       return;
@@ -259,6 +259,7 @@ class HomePageState extends State<HomePage> {
           _isSubmitting = false; // Enable screen navigation
           _isAutoRefresh = false;
         });
+        _refreshHomeScreen(); // Refresh the HomeScreen after submission
       }
     }
   }
