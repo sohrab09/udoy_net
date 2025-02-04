@@ -9,6 +9,7 @@ import 'package:udoy_net/utils/TokenManager.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:udoy_net/classes/device_location.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -32,6 +33,7 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   final Connectivity _connectivity = Connectivity();
   late StreamSubscription<List<ConnectivityResult>> _connectivitySubscription;
+  late Timer _locationCheckTimer;
 
   @override
   void initState() {
@@ -39,11 +41,15 @@ class _MyAppState extends State<MyApp> {
     _checkAndRequestPermissions();
     _connectivitySubscription =
         _connectivity.onConnectivityChanged.listen(_handleConnectivityChange);
+
+    DeviceLocation().forceOpenDeviceLocation(context);
+    _startLocationCheckTimer();
   }
 
   @override
   void dispose() {
     _connectivitySubscription.cancel();
+    _locationCheckTimer.cancel();
     super.dispose();
   }
 
@@ -97,6 +103,19 @@ class _MyAppState extends State<MyApp> {
         }
       }
     });
+  }
+
+  void _startLocationCheckTimer() {
+    _locationCheckTimer = Timer.periodic(Duration(seconds: 10), (timer) async {
+      await _checkLocationStatus();
+    });
+  }
+
+  Future<void> _checkLocationStatus() async {
+    bool isLocationEnabled = await Permission.location.serviceStatus.isEnabled;
+    if (!isLocationEnabled) {
+      DeviceLocation().forceOpenDeviceLocation(context);
+    }
   }
 
   @override
