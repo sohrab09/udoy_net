@@ -51,6 +51,7 @@ class HomePageState extends State<HomePage> {
         _connectivity.onConnectivityChanged.listen(_handleConnectivityChange);
   }
 
+  @override
   void dispose() {
     _connectivitySubscription.cancel();
     super.dispose();

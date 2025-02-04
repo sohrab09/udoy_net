@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:udoy_net/root_screen/home_page.dart';
 
 class NoWiFiPage extends StatelessWidget {
+  const NoWiFiPage({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
