@@ -36,13 +36,22 @@ class HomePageState extends State<HomePage> {
   String? customerCode;
   String? token;
   bool _isSubmitting = false; // Add a new state variable to track submission
+  bool _isAutoRefresh = false; // Add a new state variable to track auto refresh
 
   final List<Widget> _pages = [];
 
   @override
   void initState() {
     super.initState();
-    _pages.addAll([HomeScreen(), ScanScreen(), DiscoverScreen()]);
+    _pages.addAll([
+      HomeScreen(
+        isSubmitting: _isSubmitting,
+        isAutoRefresh: _isAutoRefresh,
+        onRefreshRequested: _refreshHomeScreen, // Add this line
+      ),
+      ScanScreen(),
+      DiscoverScreen()
+    ]);
     _getPublicIPAddress();
     _verifyIPAddress(_internetPublicIP);
     _fetchCustomerID();
@@ -134,8 +143,12 @@ class HomePageState extends State<HomePage> {
         _isLoading =
             true; // Start loading when the user clicks the submit button
         _isSubmitting = true; // Disable screen navigation
+        _isAutoRefresh = true;
       });
     }
+
+    // Refresh the HomeScreen
+    _refreshHomeScreen();
 
     if (customerCode == null ||
         token == null ||
@@ -151,6 +164,7 @@ class HomePageState extends State<HomePage> {
         setState(() {
           _isLoading = false; // End loading if data is missing
           _isSubmitting = false; // Enable screen navigation
+          _isSubmitting = false;
         });
       }
       return;
@@ -243,9 +257,25 @@ class HomePageState extends State<HomePage> {
         setState(() {
           _isLoading = false; // End loading once the submission is done
           _isSubmitting = false; // Enable screen navigation
+          _isAutoRefresh = false;
         });
       }
     }
+  }
+
+  // Modify this method
+  void _refreshHomeScreen() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        setState(() {
+          _pages[0] = HomeScreen(
+            isSubmitting: _isSubmitting,
+            isAutoRefresh: _isAutoRefresh,
+            onRefreshRequested: _refreshHomeScreen,
+          );
+        });
+      }
+    });
   }
 
   @override

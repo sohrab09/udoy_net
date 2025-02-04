@@ -3,11 +3,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:udoy_net/root_screen/home_page.dart';
 import 'package:udoy_net/screens/login_screen.dart';
-import 'package:udoy_net/screens/no_wifi.dart';
 import 'package:udoy_net/utils/TokenManager.dart';
-// import 'package:flutter/foundation.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:udoy_net/classes/device_location.dart';
 
@@ -31,24 +28,18 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  final Connectivity _connectivity = Connectivity();
-  late StreamSubscription<List<ConnectivityResult>> _connectivitySubscription;
   late Timer _locationCheckTimer;
 
   @override
   void initState() {
     super.initState();
     _checkAndRequestPermissions();
-    _connectivitySubscription =
-        _connectivity.onConnectivityChanged.listen(_handleConnectivityChange);
-
     DeviceLocation().forceOpenDeviceLocation(context);
     _startLocationCheckTimer();
   }
 
   @override
   void dispose() {
-    _connectivitySubscription.cancel();
     _locationCheckTimer.cancel();
     super.dispose();
   }
@@ -88,25 +79,8 @@ class _MyAppState extends State<MyApp> {
     }
   }
 
-  void _handleConnectivityChange(List<ConnectivityResult> results) {
-    Future.microtask(() {
-      for (var result in results) {
-        if (result == ConnectivityResult.mobile) {
-          print("Connected to Mobile $results");
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => NoWiFiPage()),
-          );
-        } else if (result == ConnectivityResult.wifi) {
-          // Optionally handle Wi-Fi-specific logic if required
-          print("Connected to Wi-Fi $results");
-        }
-      }
-    });
-  }
-
   void _startLocationCheckTimer() {
-    _locationCheckTimer = Timer.periodic(Duration(seconds: 10), (timer) async {
+    _locationCheckTimer = Timer.periodic(Duration(seconds: 5), (timer) async {
       await _checkLocationStatus();
     });
   }
