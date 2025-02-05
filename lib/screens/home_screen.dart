@@ -9,14 +9,22 @@ import 'ping_service.dart';
 import 'package:fl_chart/fl_chart.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final bool isSubmitting;
+  final bool isAutoRefresh;
+  final VoidCallback onRefreshRequested; // Add this line
+
+  const HomeScreen(
+      {super.key,
+      required this.isSubmitting,
+      required this.isAutoRefresh,
+      required this.onRefreshRequested}); // Modify this line
 
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  static const platform = MethodChannel('com.example.udoy_net/linkSpeed');
+  static const platform = MethodChannel('com.adntelecom.udoy_net/linkSpeed');
 
   final NetworkInfo _networkInfo = NetworkInfo();
   Timer? _periodicTimer;
@@ -45,6 +53,15 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _initializeData();
+  }
+
+  @override
+  void didUpdateWidget(HomeScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isAutoRefresh && !oldWidget.isAutoRefresh) {
+      widget
+          .onRefreshRequested(); // Call the refresh method when auto-refresh is enabled
+    }
   }
 
   void _initializeData() async {
@@ -226,9 +243,13 @@ class _HomeScreenState extends State<HomeScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
-              onRefresh: _refreshData,
+              onRefresh: widget.isSubmitting
+                  ? () async {}
+                  : _refreshData, // Disable refresh when submitting
               child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
+                physics: widget.isSubmitting
+                    ? const NeverScrollableScrollPhysics() // Disable scrolling when submitting
+                    : const AlwaysScrollableScrollPhysics(),
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(

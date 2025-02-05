@@ -15,11 +15,18 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
   final NetworkInfo _networkInfo = NetworkInfo();
   String? subnet;
   List<Map<String, String>> connectedDevices = [];
+  bool _isDisposed = false; // Add this flag
 
   @override
   void initState() {
     super.initState();
     requestPermissions();
+  }
+
+  @override
+  void dispose() {
+    _isDisposed = true; // Set the flag to true when disposing
+    super.dispose();
   }
 
   // Request location permission
@@ -71,13 +78,16 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
     await for (final event in ping.stream) {
       if (event.response != null) {
         String? hostName = await getDeviceName(ip);
-        setState(() {
-          connectedDevices.add({
-            'ip': ip,
-            'name': hostName ?? 'Unknown',
-            'pingStatus': 'Online',
+        if (!_isDisposed) {
+          // Check if the widget is disposed before calling setState
+          setState(() {
+            connectedDevices.add({
+              'ip': ip,
+              'name': hostName ?? 'Unknown',
+              'pingStatus': 'Online',
+            });
           });
-        });
+        }
       }
     }
   }

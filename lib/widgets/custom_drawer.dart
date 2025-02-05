@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:udoy_net/screens/login_screen.dart';
 import 'package:udoy_net/screens/profile_screen.dart';
 import 'package:udoy_net/utils/TokenManager.dart';
+import 'package:udoy_net/utils/version_manager.dart';
 
 class CustomDrawer extends StatefulWidget {
   const CustomDrawer({super.key});
@@ -84,6 +85,20 @@ class CustomDrawerState extends State<CustomDrawer> {
             leading: Icon(Icons.logout, color: Colors.red),
             title: Text('Logout'),
             onTap: _logout,
+          ),
+          Divider(
+            color: Colors.grey,
+            thickness: 0.1,
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text(
+              'Version: ${VersionManager.getAppVersion()}',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey,
+              ),
+            ),
           ),
         ],
       ),

@@ -3,11 +3,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:udoy_net/root_screen/home_page.dart';
 import 'package:udoy_net/screens/login_screen.dart';
-import 'package:udoy_net/screens/no_wifi.dart';
 import 'package:udoy_net/utils/TokenManager.dart';
-// import 'package:flutter/foundation.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:udoy_net/classes/device_location.dart';
 
@@ -31,25 +28,41 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
+
+  late Timer _locationCheckTimer;
+  late Timer _logoutCheckTimer;
+
   final Connectivity _connectivity = Connectivity();
   late StreamSubscription<List<ConnectivityResult>> _connectivitySubscription;
   late Timer _locationCheckTimer;
+
 
   @override
   void initState() {
     super.initState();
     _checkAndRequestPermissions();
+
+    DeviceLocation().forceOpenDeviceLocation(context);
+    _startLocationCheckTimer();
+    _startLogoutCheckTimer(); // Start the logout check timer
+
     _connectivitySubscription =
         _connectivity.onConnectivityChanged.listen(_handleConnectivityChange);
 
     DeviceLocation().forceOpenDeviceLocation(context);
     _startLocationCheckTimer();
+
   }
 
   @override
   void dispose() {
+
+    _locationCheckTimer.cancel();
+    _logoutCheckTimer.cancel();
+
     _connectivitySubscription.cancel();
     _locationCheckTimer.cancel();
+
     super.dispose();
   }
 
@@ -88,22 +101,41 @@ class _MyAppState extends State<MyApp> {
     }
   }
 
-  void _handleConnectivityChange(List<ConnectivityResult> results) {
-    Future.microtask(() {
-      for (var result in results) {
-        if (result == ConnectivityResult.mobile) {
-          print("Connected to Mobile $results");
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => NoWiFiPage()),
-          );
-        } else if (result == ConnectivityResult.wifi) {
-          // Optionally handle Wi-Fi-specific logic if required
-          print("Connected to Wi-Fi $results");
-        }
-      }
+  void _startLocationCheckTimer() {
+    _locationCheckTimer = Timer.periodic(Duration(seconds: 5), (timer) async {
+      await _checkLocationStatus();
     });
   }
+
+  Future<void> _checkLocationStatus() async {
+    bool isLocationEnabled = await Permission.location.serviceStatus.isEnabled;
+    if (!isLocationEnabled) {
+      DeviceLocation().forceOpenDeviceLocation(context);
+    }
+  }
+
+  void _startLogoutCheckTimer() {
+    _logoutCheckTimer = Timer.periodic(Duration(seconds: 30), (timer) async {
+      await _checkLogoutTime();
+    });
+  }
+
+
+  Future<void> _checkLogoutTime() async {
+    final loginTimeString = await TokenManager.getLoginTime();
+    if (loginTimeString != null && loginTimeString.isNotEmpty) {
+      DateTime loginTime = DateTime.parse(loginTimeString);
+      DateTime now = DateTime.now();
+      if (now.difference(loginTime).inMinutes >= 2) {
+        _logoutUser();
+        print('User logged out due to inactivity');
+      }
+    }
+  }
+
+  void _logoutUser() {
+    TokenManager.logout();
+    navigatorKey.currentState?.pushReplacementNamed('/login');
 
   void _startLocationCheckTimer() {
     _locationCheckTimer = Timer.periodic(Duration(seconds: 10), (timer) async {
@@ -116,6 +148,7 @@ class _MyAppState extends State<MyApp> {
     if (!isLocationEnabled) {
       DeviceLocation().forceOpenDeviceLocation(context);
     }
+
   }
 
   @override
