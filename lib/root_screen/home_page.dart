@@ -8,6 +8,8 @@ import 'package:udoy_net/screens/no_wifi.dart';
 import 'package:udoy_net/screens/scan_screen.dart';
 import 'package:udoy_net/classes/wifi_available.dart';
 import 'package:udoy_net/classes/wifi_class.dart';
+import 'package:udoy_net/screens/version_mismatch.dart';
+import 'package:udoy_net/utils/version_manager.dart';
 import 'package:udoy_net/widgets/custom_bottom_navigation_bar.dart';
 import 'package:udoy_net/widgets/custom_drawer.dart';
 import 'dart:convert';
@@ -29,6 +31,7 @@ class HomePage extends StatefulWidget {
 class HomePageState extends State<HomePage> {
   final Connectivity _connectivity = Connectivity();
   late StreamSubscription<List<ConnectivityResult>> _connectivitySubscription;
+  String appVersion = VersionManager.getAppVersion();
 
   int _currentIndex = 0;
   bool _isLoading = false; // Start with loading as false initially
@@ -52,6 +55,7 @@ class HomePageState extends State<HomePage> {
       ScanScreen(),
       DiscoverScreen()
     ]);
+    getVersionValidation();
     _getPublicIPAddress();
     _verifyIPAddress(_internetPublicIP);
     _fetchCustomerID();
@@ -64,6 +68,34 @@ class HomePageState extends State<HomePage> {
   void dispose() {
     _connectivitySubscription.cancel();
     super.dispose();
+  }
+
+  Future<void> getVersionValidation() async {
+    final url = Uri.parse(
+        'https://api.udoyadn.com/api/Auth/GetAppsVersionStatus?version=$appVersion');
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data == true) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) =>
+                  VersionMismatchScreen(versionName: appVersion),
+            ),
+          );
+        }
+      } else {
+        print('Request failed with status verify: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error in Version verification: $e');
+    }
   }
 
   void _handleConnectivityChange(List<ConnectivityResult> results) {
