@@ -232,8 +232,8 @@ class _LoginScreenState extends State<LoginScreen> {
         await TokenManager.setExpireDate(expireDate);
         await getDeviceDateTime(); // Get device date and time after successful login
         loginTime = DateTime.now(); // Set login time after successful login
-        await TokenManager.setLoginTime(
-            loginTime.toString()); // Store login time
+        await TokenManager.setLoginTime(DateTime.now().toIso8601String());
+        await TokenManager.setLastLoginDate(DateTime.now().toIso8601String());
         print('Login successful at $loginTime');
         Navigator.pushReplacementNamed(context, '/home');
       } else if (response.statusCode == 200 && data['success'] == false) {

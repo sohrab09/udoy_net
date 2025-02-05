@@ -102,13 +102,15 @@ class _MyAppState extends State<MyApp> {
   }
 
   Future<void> _checkLogoutTime() async {
-    final loginTimeString = await TokenManager.getLoginTime();
-    if (loginTimeString != null && loginTimeString.isNotEmpty) {
-      DateTime loginTime = DateTime.parse(loginTimeString);
+    final lastLoginDateString = await TokenManager.getLastLoginDate();
+    if (lastLoginDateString != null && lastLoginDateString.isNotEmpty) {
+      DateTime lastLoginDate = DateTime.parse(lastLoginDateString);
       DateTime now = DateTime.now();
-      if (now.difference(loginTime).inMinutes >= 2) {
+      if (now.day != lastLoginDate.day ||
+          now.month != lastLoginDate.month ||
+          now.year != lastLoginDate.year) {
         _logoutUser();
-        print('User logged out due to inactivity');
+        print('User logged out due to date change');
       }
     }
   }

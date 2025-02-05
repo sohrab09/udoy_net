@@ -13,6 +13,7 @@ class TokenManager {
   static const _routerIp = 'routerIp';
   static const _expireDate = 'expireDate';
   static const _loginTime = 'loginTime';
+  static const _lastLoginDateKey = 'lastLoginDate';
 
   // Getters
   static Future<String?> getToken() async {
@@ -73,6 +74,11 @@ class TokenManager {
   static Future<String?> getLoginTime() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_loginTime);
+  }
+
+  static Future<String?> getLastLoginDate() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_lastLoginDateKey);
   }
 
   // Setters
@@ -136,6 +142,11 @@ class TokenManager {
     prefs.setString(_loginTime, loginTime);
   }
 
+  static Future<void> setLastLoginDate(String date) async {
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setString(_lastLoginDateKey, date);
+  }
+
   // Getters
 
   // To clear all saved data
@@ -153,5 +164,6 @@ class TokenManager {
     prefs.remove(_routerIp);
     prefs.remove(_expireDate);
     prefs.remove(_loginTime);
+    prefs.remove(_lastLoginDateKey);
   }
 }
