@@ -81,7 +81,7 @@ class HomePageState extends State<HomePage> {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        if (data == true) {
+        if (data == false) {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
