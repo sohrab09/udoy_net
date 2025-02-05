@@ -28,41 +28,22 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-
   late Timer _locationCheckTimer;
   late Timer _logoutCheckTimer;
-
-  final Connectivity _connectivity = Connectivity();
-  late StreamSubscription<List<ConnectivityResult>> _connectivitySubscription;
-  late Timer _locationCheckTimer;
-
 
   @override
   void initState() {
     super.initState();
     _checkAndRequestPermissions();
-
     DeviceLocation().forceOpenDeviceLocation(context);
     _startLocationCheckTimer();
     _startLogoutCheckTimer(); // Start the logout check timer
-
-    _connectivitySubscription =
-        _connectivity.onConnectivityChanged.listen(_handleConnectivityChange);
-
-    DeviceLocation().forceOpenDeviceLocation(context);
-    _startLocationCheckTimer();
-
   }
 
   @override
   void dispose() {
-
     _locationCheckTimer.cancel();
     _logoutCheckTimer.cancel();
-
-    _connectivitySubscription.cancel();
-    _locationCheckTimer.cancel();
-
     super.dispose();
   }
 
@@ -120,7 +101,6 @@ class _MyAppState extends State<MyApp> {
     });
   }
 
-
   Future<void> _checkLogoutTime() async {
     final loginTimeString = await TokenManager.getLoginTime();
     if (loginTimeString != null && loginTimeString.isNotEmpty) {
@@ -136,19 +116,6 @@ class _MyAppState extends State<MyApp> {
   void _logoutUser() {
     TokenManager.logout();
     navigatorKey.currentState?.pushReplacementNamed('/login');
-
-  void _startLocationCheckTimer() {
-    _locationCheckTimer = Timer.periodic(Duration(seconds: 10), (timer) async {
-      await _checkLocationStatus();
-    });
-  }
-
-  Future<void> _checkLocationStatus() async {
-    bool isLocationEnabled = await Permission.location.serviceStatus.isEnabled;
-    if (!isLocationEnabled) {
-      DeviceLocation().forceOpenDeviceLocation(context);
-    }
-
   }
 
   @override
