@@ -29,6 +29,7 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   late Timer _locationCheckTimer;
+  late Timer _logoutCheckTimer;
 
   @override
   void initState() {
@@ -36,11 +37,13 @@ class _MyAppState extends State<MyApp> {
     _checkAndRequestPermissions();
     DeviceLocation().forceOpenDeviceLocation(context);
     _startLocationCheckTimer();
+    _startLogoutCheckTimer(); // Start the logout check timer
   }
 
   @override
   void dispose() {
     _locationCheckTimer.cancel();
+    _logoutCheckTimer.cancel();
     super.dispose();
   }
 
@@ -90,6 +93,29 @@ class _MyAppState extends State<MyApp> {
     if (!isLocationEnabled) {
       DeviceLocation().forceOpenDeviceLocation(context);
     }
+  }
+
+  void _startLogoutCheckTimer() {
+    _logoutCheckTimer = Timer.periodic(Duration(seconds: 30), (timer) async {
+      await _checkLogoutTime();
+    });
+  }
+
+  Future<void> _checkLogoutTime() async {
+    final loginTimeString = await TokenManager.getLoginTime();
+    if (loginTimeString != null && loginTimeString.isNotEmpty) {
+      DateTime loginTime = DateTime.parse(loginTimeString);
+      DateTime now = DateTime.now();
+      if (now.difference(loginTime).inMinutes >= 2) {
+        _logoutUser();
+        print('User logged out due to inactivity');
+      }
+    }
+  }
+
+  void _logoutUser() {
+    TokenManager.logout();
+    navigatorKey.currentState?.pushReplacementNamed('/login');
   }
 
   @override

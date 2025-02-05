@@ -22,6 +22,8 @@ class _LoginScreenState extends State<LoginScreen> {
   bool isLoading = false; // Track loading state
   String publicIpAddress = '';
   Timer? _timer;
+  String deviceDate = '';
+  DateTime loginTime = DateTime.now();
 
   String date = '';
   String time = '';
@@ -228,6 +230,11 @@ class _LoginScreenState extends State<LoginScreen> {
             billAmount); // billAmount is now a String
         await TokenManager.setRouterIp(routerIp);
         await TokenManager.setExpireDate(expireDate);
+        await getDeviceDateTime(); // Get device date and time after successful login
+        loginTime = DateTime.now(); // Set login time after successful login
+        await TokenManager.setLoginTime(
+            loginTime.toString()); // Store login time
+        print('Login successful at $loginTime');
         Navigator.pushReplacementNamed(context, '/home');
       } else if (response.statusCode == 200 && data['success'] == false) {
         setState(() {
@@ -264,6 +271,14 @@ class _LoginScreenState extends State<LoginScreen> {
         MaterialPageRoute(builder: (context) => const ErrorScreen()),
       );
     }
+  }
+
+  Future<void> getDeviceDateTime() async {
+    DateTime now = DateTime.now();
+    setState(() {
+      deviceDate = '${now.year}-${now.month}-${now.day}';
+      print("deviceDate$deviceDate");
+    });
   }
 
   void _login() async {
