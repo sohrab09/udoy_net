@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.adntelecom.udoy_net"
+    namespace = "com.adntelecomltd.udoy_net"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -29,7 +29,7 @@ android {
         //versionCode = flutter.versionCode
         //versionName = flutter.versionName
 
-        applicationId = "com.adntelecom.udoy_net"
+        applicationId = "com.adntelecomltd.udoy_net"
         minSdk = 21
         targetSdk = 34
         versionCode = 1

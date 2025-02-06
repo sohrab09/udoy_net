@@ -1,4 +1,4 @@
-package com.adntelecom.udoy_net
+package com.adntelecomltd.udoy_net
 
 import android.net.wifi.WifiInfo
 import android.net.wifi.WifiManager
@@ -13,8 +13,8 @@ import java.io.InputStreamReader
 
 class MainActivity : FlutterActivity() {
 
-    private val CHANNEL_WIFI = "com.adntelecom.udoy_net/linkSpeed"
-    private val CHANNEL_PING = "com.adntelecom.udoy_net/ping"
+    private val CHANNEL_WIFI = "com.adntelecomltd.udoy_net/linkSpeed"
+    private val CHANNEL_PING = "com.adntelecomltd.udoy_net/ping"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)

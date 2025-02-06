@@ -11,7 +11,7 @@ import 'package:get_ip_address/get_ip_address.dart';
 class WifiClass {
   get developer => null;
 
-  static const platform = MethodChannel('com.adntelecom.udoy_net/linkSpeed');
+  static const platform = MethodChannel('com.adntelecomltd.udoy_net/linkSpeed');
 
   // Utility function to handle network-related error
   Future<String> getDataFromNetwork(

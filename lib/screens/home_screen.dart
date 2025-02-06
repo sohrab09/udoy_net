@@ -24,7 +24,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  static const platform = MethodChannel('com.adntelecom.udoy_net/linkSpeed');
+  static const platform = MethodChannel('com.adntelecomltd.udoy_net/linkSpeed');
 
   final NetworkInfo _networkInfo = NetworkInfo();
   Timer? _periodicTimer;
