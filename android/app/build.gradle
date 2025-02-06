@@ -41,7 +41,7 @@ android {
             //keytool -genkey -v -keystore C:\Users\mmonj\key.jks -keyalg RSA -keysize 2048 -validity 10000 -alias udoyts_key
             //flutter clean
             //flutter build appbundle --release
-            storeFile file('C:\\Users\\mmonj\\key.jks')
+            storeFile file('C:\\AppKey\\key.jks')
             storePassword 'UdoyAdnApps'
             keyAlias 'udoyts_key'
             keyPassword 'UdoyAdnApps'
