@@ -3,9 +3,11 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:udoy_net/screens/error_screen.dart';
+import 'package:udoy_net/screens/version_mismatch.dart';
 import 'package:udoy_net/utils/TokenManager.dart';
 import 'package:get_ip_address/get_ip_address.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:udoy_net/utils/version_manager.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -19,7 +21,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _userIdController = TextEditingController(text: '');
   final _passwordController = TextEditingController(text: '');
   bool _obscurePassword = true;
-  bool isLoading = false; // Track loading state
+  bool isLoading = false;
   String publicIpAddress = '';
   Timer? _timer;
   String deviceDate = '';
@@ -27,11 +29,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
   String date = '';
   String time = '';
-  // String authToken = '';
 
   @override
   void initState() {
     super.initState();
+    getVersionValidation();
     getPublicIPAddress();
     getDatTime();
 
@@ -50,6 +52,36 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  Future<void> getVersionValidation() async {
+    String appVersion = VersionManager.getAppVersion();
+
+    final url = Uri.parse(
+        'https://api.udoyadn.com/api/Auth/GetAppsVersionStatus?version=$appVersion');
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data == false) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) =>
+                  VersionMismatchScreen(versionName: appVersion),
+            ),
+          );
+        }
+      } else {
+        print('Request failed with status verify: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error in Version verification: $e');
+    }
+  }
+
   Future<void> getPublicIPAddress() async {
     try {
       var ipAddress = IpAddress(type: RequestType.json);
@@ -57,9 +89,11 @@ class _LoginScreenState extends State<LoginScreen> {
       if (data['ip'] == null) {
         throw IpAddressException('Failed to get Public IP');
       }
-      setState(() {
-        publicIpAddress = data['ip'];
-      });
+      if (mounted) {
+        setState(() {
+          publicIpAddress = data['ip'];
+        });
+      }
       await verifyIPAddress(data['ip']);
     } on IpAddressException catch (exception) {
       print(exception.message);
@@ -111,10 +145,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
         final formattedHour = hour.toString().padLeft(2, '0');
 
-        setState(() {
-          this.date = date;
-          time = formattedHour;
-        });
+        if (mounted) {
+          setState(() {
+            this.date = date;
+            time = formattedHour;
+          });
+        }
       } else {
         print('Request failed with status: ${response.statusCode}');
       }
@@ -159,17 +195,21 @@ class _LoginScreenState extends State<LoginScreen> {
         String authToken = data['token'];
         await handleLogin(userId, password, authToken);
       } else {
-        setState(() {
-          isLoading = false;
-        });
+        if (mounted) {
+          setState(() {
+            isLoading = false;
+          });
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Login Failed')),
         );
       }
     } catch (e) {
-      setState(() {
-        isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
       print('Error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('An error occurred')),
@@ -206,13 +246,11 @@ class _LoginScreenState extends State<LoginScreen> {
         String customerCode = data['data']['customerCode'];
         String customerName = data['data']['customerName'];
         String distributorName = data['data']['distributorName'];
-        String? resellerName = data['data']['resellerName']; // Nullable field
+        String? resellerName = data['data']['resellerName'];
         String pppoeUserid = data['data']['pppoeUserid'];
         String pppoePassword = data['data']['pppoePassword'];
-        String balance =
-            data['data']['balance'].toString(); // Convert int to String
-        String billAmount =
-            data['data']['billAmount'].toString(); // Convert int to String
+        String balance = data['data']['balance'].toString();
+        String billAmount = data['data']['billAmount'].toString();
         String routerIp = data['data']['routerIp'];
         String expireDate = data['data']['expireDate'];
 
@@ -221,34 +259,36 @@ class _LoginScreenState extends State<LoginScreen> {
         await TokenManager.setCustomerCode(customerCode);
         await TokenManager.setCustomerName(customerName);
         await TokenManager.setDistributorName(distributorName);
-        await TokenManager.setResellerName(
-            resellerName ?? ''); // Handle null by providing a default value
+        await TokenManager.setResellerName(resellerName ?? '');
         await TokenManager.setPppoeUserid(pppoeUserid);
         await TokenManager.setPppoePassword(pppoePassword);
-        await TokenManager.setBalance(balance); // balance is now a String
-        await TokenManager.setBillAmount(
-            billAmount); // billAmount is now a String
+        await TokenManager.setBalance(balance);
+        await TokenManager.setBillAmount(billAmount);
         await TokenManager.setRouterIp(routerIp);
         await TokenManager.setExpireDate(expireDate);
-        await getDeviceDateTime(); // Get device date and time after successful login
-        loginTime = DateTime.now(); // Set login time after successful login
+        await getDeviceDateTime();
+        loginTime = DateTime.now();
         await TokenManager.setLoginTime(DateTime.now().toIso8601String());
         await TokenManager.setLastLoginDate(DateTime.now().toIso8601String());
         print('Login successful at $loginTime');
         Navigator.pushReplacementNamed(context, '/home');
       } else if (response.statusCode == 200 && data['success'] == false) {
-        setState(() {
-          isLoading = false; // Show the button again if login fails
-        });
+        if (mounted) {
+          setState(() {
+            isLoading = false;
+          });
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
               content: Text(
                   'Login Failed: ${data['errorMessage'] ?? 'An error occurred'}')),
         );
       } else {
-        setState(() {
-          isLoading = false; // Show the button again if login fails
-        });
+        if (mounted) {
+          setState(() {
+            isLoading = false;
+          });
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
               content: Text(
@@ -256,9 +296,11 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       }
     } catch (e) {
-      setState(() {
-        isLoading = false; // Show the button again if error occurs
-      });
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
       print('Error: $e');
     }
   }
@@ -275,16 +317,18 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> getDeviceDateTime() async {
     DateTime now = DateTime.now();
-    setState(() {
-      deviceDate = '${now.year}-${now.month}-${now.day}';
-      print("deviceDate$deviceDate");
-    });
+    if (mounted) {
+      setState(() {
+        deviceDate = '${now.year}-${now.month}-${now.day}';
+        print("deviceDate$deviceDate");
+      });
+    }
   }
 
   void _login() async {
     if (_formKey.currentState!.validate()) {
       setState(() {
-        isLoading = true; // Show the spinner when login is clicked
+        isLoading = true;
       });
       await sendRequest(_userIdController.text, _passwordController.text);
     }

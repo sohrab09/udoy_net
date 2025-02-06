@@ -33,7 +33,7 @@ android {
         minSdk = 21
         targetSdk = 34
         versionCode = 1
-        versionName = 1.02 // ** Every time you release a new version, increment this **
+        versionName = "1.0.2" // ** Every time you release a new version, increment this **
     }
 
     signingConfigs {
@@ -41,7 +41,7 @@ android {
             //keytool -genkey -v -keystore C:\Users\mmonj\key.jks -keyalg RSA -keysize 2048 -validity 10000 -alias udoyts_key
             //flutter clean
             //flutter build appbundle --release
-            storeFile file('C:\\Users\\mmonj\\key.jks')
+            storeFile file('C:\\AppKey\\key.jks')
             storePassword 'UdoyAdnApps'
             keyAlias 'udoyts_key'
             keyPassword 'UdoyAdnApps'
